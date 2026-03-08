@@ -1830,21 +1830,50 @@ function toast(msg){
 /* ============================================================
    BRANCH SWITCHER
 ============================================================ */
-let branches = JSON.parse(localStorage.getItem('kd_branches') || 'null') || [
-  {key:'', name:'মানিকগঞ্জ', icon:'🏠'}
+// সব শাখা এখানে — নতুন শাখা যোগ করলে এখানে যোগ করুন
+const DEFAULT_BRANCHES = [
+  {key:'',          name:'মানিকগঞ্জ',   icon:'🏠'},
+  {key:'gopalganj', name:'গোপালগঞ্জ',   icon:'🏪'},
+  {key:'sandwip',   name:'সন্দ্বীপ',     icon:'🏪'},
+  {key:'feni',      name:'ফেনী',         icon:'🏪'},
+  {key:'bhoirob',   name:'ভৈরব',         icon:'🏪'},
 ];
+
+// localStorage থেকে closed status নাও, কিন্তু শাখার তালিকা সবসময় DEFAULT থেকে
+let savedStatus = JSON.parse(localStorage.getItem('kd_branch_status') || '{}');
+let branches = DEFAULT_BRANCHES.map(b => ({...b, closed: savedStatus[b.key||'root'] || false}));
 let activeBranch = branches[0];
 
-function saveBranches(){ localStorage.setItem('kd_branches', JSON.stringify(branches)); }
+function saveBranches(){
+  // শুধু closed status সেভ করো
+  const st = {};
+  branches.forEach(b => { st[b.key||'root'] = b.closed || false; });
+  localStorage.setItem('kd_branch_status', JSON.stringify(st));
+}
 
 function renderBranchTabs(){
   const bar = document.getElementById('branchTabs');
   if(!bar) return;
   bar.innerHTML = branches.map((b,i) => {
     const active = b.key === activeBranch.key;
-    return '<div style="display:flex;align-items:center;">'+
-      '<button onclick="switchBranch('+i+')" style="background:'+(active?'var(--gold)':'rgba(255,255,255,.1)')+';color:'+(active?'var(--brown-d)':'rgba(255,255,255,.8)')+';border:1.5px solid '+(active?'var(--gold)':'rgba(255,255,255,.2)')+';border-right:none;border-radius:20px 0 0 20px;padding:4px 12px;font-family:Hind Siliguri,sans-serif;font-size:.75rem;font-weight:700;cursor:pointer;white-space:nowrap;">'+(b.icon||'🏪')+' '+b.name+'</button>'+
-      (branches.length>1 ? '<button onclick="removeBranch('+i+')" style="background:rgba(239,68,68,.2);border:1.5px solid rgba(239,68,68,.3);border-left:none;border-radius:0 20px 20px 0;padding:4px 8px;color:#fca5a5;cursor:pointer;font-size:.72rem;">✕</button>' : '<span style="width:0"></span>')+
+    const closed = b.closed === true;
+    return '<div style="display:flex;align-items:center;margin-bottom:2px;">'+
+      '<button onclick="switchBranch('+i+')" style="'+
+        'background:'+(active?'var(--gold)':(closed?'rgba(239,68,68,.2)':'rgba(255,255,255,.1)'))+';'+
+        'color:'+(active?'var(--brown-d)':(closed?'#fca5a5':'rgba(255,255,255,.8)'))+';'+
+        'border:1.5px solid '+(active?'var(--gold)':(closed?'rgba(239,68,68,.5)':'rgba(255,255,255,.2)'))+';'+
+        'border-right:none;border-radius:20px 0 0 20px;padding:4px 12px;'+
+        'font-family:Hind Siliguri,sans-serif;font-size:.75rem;font-weight:700;cursor:pointer;white-space:nowrap;">'+
+        (closed?'🔴 ':'🟢 ')+(b.icon||'🏪')+' '+b.name+
+      '</button>'+
+      '<button onclick="toggleBranchStatus('+i+')" title="'+(closed?'চালু করুন':'বন্ধ করুন')+'" style="'+
+        'background:'+(closed?'rgba(34,197,94,.2)':'rgba(239,68,68,.2)')+';'+
+        'border:1.5px solid '+(closed?'rgba(34,197,94,.4)':'rgba(239,68,68,.3)')+';'+
+        'border-left:none;border-right:none;padding:4px 7px;'+
+        'color:'+(closed?'#86efac':'#fca5a5')+';cursor:pointer;font-size:.72rem;">'+
+        (closed?'▶':'⏸')+
+      '</button>'+
+      (branches.length>1 ? '<button onclick="removeBranch('+i+')" style="background:rgba(239,68,68,.15);border:1.5px solid rgba(239,68,68,.25);border-left:none;border-radius:0 20px 20px 0;padding:4px 7px;color:#fca5a5;cursor:pointer;font-size:.72rem;">✕</button>' : '<span style="border-radius:0 20px 20px 0;border:1.5px solid rgba(255,255,255,.1);border-left:none;padding:4px 7px;color:transparent;">✕</span>')+
       '</div>';
   }).join('');
 }
@@ -1875,13 +1904,44 @@ function addBranchPrompt(){
   toast('✅ '+name.trim()+' যোগ হয়েছে!');
 }
 
+function toggleBranchStatus(i){
+  const branch = branches[i];
+  const closing = !branch.closed;
+  const label = closing ? '⛔ বন্ধ করবেন?' : '✅ চালু করবেন?';
+  if(!confirm(branch.name + ' — ' + label)) return;
+  // Firebase path
+  const fbPath = branch.key ? 'branches/'+branch.key+'/status' : 'status';
+  db.ref(fbPath).set({ closed: closing, updatedAt: Date.now() })
+    .then(()=>{
+      branch.closed = closing;
+      saveBranches();
+      renderBranchTabs();
+      toast((closing ? '🔴 বন্ধ করা হয়েছে: ' : '🟢 চালু করা হয়েছে: ') + branch.name);
+    })
+    .catch(e=>{ toast('❌ Error: ' + e.message); });
+}
+
 function removeBranch(i){
   if(branches[i].key===activeBranch.key){ toast('❌ সক্রিয় শাখা মুছতে পারবেন না'); return; }
   if(!confirm(branches[i].name+' সরিয়ে দেবেন?')) return;
   branches.splice(i,1); saveBranches(); renderBranchTabs();
 }
 
+// Page load এ Firebase থেকে সব শাখার status sync করো
+function syncAllBranchStatus(){
+  branches.forEach((b, i) => {
+    const fbPath = b.key ? 'branches/'+b.key+'/status' : 'status';
+    db.ref(fbPath).on('value', snap => {
+      const v = snap.val();
+      branches[i].closed = (v && v.closed === true);
+      saveBranches();
+      renderBranchTabs();
+    });
+  });
+}
+
 renderBranchTabs();
+syncAllBranchStatus();
 </script>
 </body>
 </html>
