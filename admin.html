@@ -1,0 +1,1887 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#3A1A06">
+<title>অ্যাডমিন — কাচ্চি ডাইন</title>
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&family=Noto+Serif+Bengali:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<!-- ✅ Firebase SDK — HEAD এ লোড করতে হবে -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<script>
+/* ============================================================
+   FIREBASE INIT — সবার আগে চলবে
+============================================================ */
+const firebaseConfig = {
+  apiKey:"AIzaSyBQb0s13mE9DcdrPl7JZHdJK6FxGR8y4po",
+  authDomain:"kacchi-bhai-manikganj.firebaseapp.com",
+  databaseURL:"https://kacchi-bhai-manikganj-default-rtdb.firebaseio.com",
+  projectId:"kacchi-bhai-manikganj",
+  storageBucket:"kacchi-bhai-manikganj.firebasestorage.app",
+  messagingSenderId:"1013566480475",
+  appId:"1:1013566480475:web:61498a5215f090c4bd1f7e"
+};
+firebase.initializeApp(firebaseConfig);
+const db   = firebase.database();
+const auth = firebase.auth();
+
+// শাখা নিয়ন্ত্রণ — যে শাখা সিলেক্ট করা হবে সেই path থেকে ডেটা নেবে
+let BRANCH_PREFIX = ''; // '' = মানিকগঞ্জ (root), 'branches/dhaka/' = ঢাকা শাখা
+function dbRef(path){ return db.ref(BRANCH_PREFIX + path); }
+</script>
+
+<style>
+:root{
+  --gold:#C9A227;--gold-l:#F0C040;--gold-d:#8B6914;
+  --brown:#5C2D0E;--brown-l:#8B4513;--brown-d:#3A1A06;
+  --cream:#FFF8E7;
+  --txt:#2C1A08;--txt-m:#5C3D1E;--txt-l:#9B7A50;
+  --sh:0 4px 24px rgba(92,45,14,.12);
+  --r:14px;--rs:8px;
+  --ok:#22c55e;--warn:#f59e0b;--err:#ef4444;--info:#3b82f6;
+  --sw:260px;--hh:60px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Hind Siliguri',sans-serif;background:#f2ece0;color:var(--txt);}
+
+/* ===== LOGIN ===== */
+#loginPage{
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,var(--brown-d) 0%,var(--brown) 55%,var(--gold-d) 100%);
+  padding:16px;
+}
+.lc{background:#fff;border-radius:var(--r);padding:34px 26px;width:100%;max-width:390px;box-shadow:0 20px 60px rgba(0,0,0,.3);animation:slideUp .45s ease;}
+@keyframes slideUp{from{transform:translateY(28px);opacity:0}to{transform:translateY(0);opacity:1}}
+.lc-logo{text-align:center;margin-bottom:22px;}
+.lc-icon{width:68px;height:68px;border-radius:50%;background:linear-gradient(135deg,var(--gold-d),var(--gold));margin:0 auto 11px;display:flex;align-items:center;justify-content:center;font-size:2rem;}
+.lc-logo h1{font-family:'Noto Serif Bengali',serif;font-size:1.45rem;font-weight:800;color:var(--brown-d);}
+.lc-logo p{font-size:.82rem;color:var(--txt-l);margin-top:3px;}
+.fg{margin-bottom:14px;}
+.fg label{display:block;font-size:.8rem;font-weight:600;color:var(--brown);margin-bottom:5px;}
+.fg input{width:100%;border:2px solid #e8d5b0;border-radius:var(--rs);padding:10px 13px;font-family:'Hind Siliguri',sans-serif;font-size:.92rem;outline:none;background:#fdf8f0;transition:border .2s;}
+.fg input:focus{border-color:var(--gold);background:#fff;}
+.login-btn{width:100%;background:linear-gradient(135deg,var(--brown),var(--brown-l));color:#fff;border:none;border-radius:var(--rs);padding:13px;font-family:'Noto Serif Bengali',serif;font-size:1rem;font-weight:700;cursor:pointer;transition:all .2s;margin-top:4px;}
+.login-btn:hover{background:linear-gradient(135deg,var(--gold-d),var(--gold));color:var(--brown-d);}
+.lerr{background:#fee2e2;border:1px solid #fca5a5;border-radius:var(--rs);padding:9px 13px;font-size:.82rem;color:#dc2626;margin-top:11px;display:none;}
+.login-hint{text-align:center;margin-top:12px;font-size:.75rem;color:var(--txt-l);}
+
+/* ===== ADMIN APP ===== */
+#adminApp{display:none;}
+.wrap{display:flex;min-height:100vh;}
+
+/* SIDEBAR */
+.sb{width:var(--sw);background:linear-gradient(180deg,var(--brown-d) 0%,#120600 100%);position:fixed;left:0;top:0;bottom:0;z-index:200;display:flex;flex-direction:column;overflow-y:auto;transition:transform .3s;}
+.sb-logo{padding:18px 14px;border-bottom:1px solid rgba(201,162,39,.18);}
+.sb-logo h2{font-family:'Noto Serif Bengali',serif;font-size:1.15rem;font-weight:800;color:var(--gold);}
+.sb-logo small{font-size:.72rem;color:rgba(255,255,255,.45);}
+.abadge{display:inline-block;background:var(--gold);color:var(--brown-d);border-radius:4px;padding:1px 8px;font-size:.68rem;font-weight:800;margin-top:5px;}
+nav{flex:1;padding:10px 9px;}
+.nsec{font-size:.68rem;font-weight:700;color:rgba(255,255,255,.28);text-transform:uppercase;letter-spacing:1px;padding:9px 8px 5px;}
+.ni{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:var(--rs);font-size:.88rem;font-weight:500;color:rgba(255,255,255,.68);cursor:pointer;transition:all .18s;margin-bottom:2px;text-decoration:none;}
+.ni i{width:17px;text-align:center;}
+.ni:hover{background:rgba(201,162,39,.14);color:var(--gold-l);}
+.ni.on{background:rgba(201,162,39,.22);color:var(--gold);font-weight:700;}
+.ni .nbadge{margin-left:auto;background:var(--err);color:#fff;border-radius:10px;padding:1px 7px;font-size:.68rem;font-weight:700;min-width:19px;text-align:center;}
+.sb-ftr{padding:14px;border-top:1px solid rgba(201,162,39,.18);}
+.logout{width:100%;display:flex;align-items:center;gap:7px;padding:9px 11px;border-radius:var(--rs);background:rgba(239,68,68,.13);border:1px solid rgba(239,68,68,.28);color:#fca5a5;font-size:.82rem;font-weight:600;cursor:pointer;font-family:'Hind Siliguri',sans-serif;transition:all .2s;}
+.logout:hover{background:rgba(239,68,68,.28);}
+
+/* MAIN */
+.main{margin-left:var(--sw);flex:1;min-width:0;}
+.topbar{position:sticky;top:0;z-index:100;height:var(--hh);background:#fff;border-bottom:2px solid #f0e8d8;display:flex;align-items:center;justify-content:space-between;padding:0 18px;box-shadow:var(--sh);}
+.tb-l{display:flex;align-items:center;gap:11px;}
+.hamburger{display:none;background:none;border:none;font-size:1.2rem;color:var(--brown);cursor:pointer;}
+.tb-title{font-family:'Noto Serif Bengali',serif;font-size:1.05rem;font-weight:700;color:var(--brown-d);}
+.tb-r{display:flex;align-items:center;gap:10px;}
+.notif-btn{position:relative;background:#fdf8f0;border:2px solid #e8d5b0;border-radius:50%;width:35px;height:35px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.95rem;color:var(--brown);transition:all .2s;}
+#ndot{position:absolute;top:-2px;right:-2px;width:10px;height:10px;border-radius:50%;background:var(--err);border:2px solid #fff;display:none;}
+.avatar{width:35px;height:35px;border-radius:50%;background:linear-gradient(135deg,var(--gold-d),var(--gold));display:flex;align-items:center;justify-content:center;color:var(--brown-d);font-size:.95rem;}
+
+/* PAGES */
+.pg{display:none;padding:18px;}
+.pg.on{display:block;}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:11px;margin-bottom:18px;}
+@media(min-width:680px){.stats{grid-template-columns:repeat(4,1fr);}}
+.sc{background:#fff;border-radius:var(--r);padding:14px;box-shadow:var(--sh);display:flex;flex-direction:column;gap:5px;border-left:4px solid;}
+.sc:nth-child(1){border-color:var(--gold);}
+.sc:nth-child(2){border-color:var(--info);}
+.sc:nth-child(3){border-color:var(--warn);}
+.sc:nth-child(4){border-color:var(--ok);}
+.sc-label{font-size:.75rem;font-weight:600;color:var(--txt-l);}
+.sc-val{font-family:'Noto Serif Bengali',serif;font-size:1.9rem;font-weight:800;color:var(--brown-d);}
+.sc-icon{font-size:1.2rem;}
+
+/* CARD */
+.card{background:#fff;border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;margin-bottom:16px;}
+.card-h{padding:12px 15px;border-bottom:2px solid #f5ede0;display:flex;align-items:center;justify-content:space-between;}
+.card-h h3{font-family:'Noto Serif Bengali',serif;font-size:.98rem;font-weight:700;color:var(--brown-d);display:flex;align-items:center;gap:7px;}
+.card-b{padding:14px;}
+.dash-grid{display:grid;grid-template-columns:1fr;gap:14px;}
+@media(min-width:760px){.dash-grid{grid-template-columns:1fr 1fr;}}
+
+/* ORDERS */
+.ord-filters{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px;align-items:center;}
+.fbadge{padding:5px 13px;border-radius:18px;border:1.5px solid #e8d5b0;background:#fff;font-size:.78rem;font-weight:600;color:var(--txt-m);cursor:pointer;transition:all .18s;white-space:nowrap;}
+.fbadge.on{background:var(--brown);border-color:var(--brown);color:#fff;}
+.sinput{padding:7px 13px;border:1.5px solid #e8d5b0;border-radius:18px;font-family:'Hind Siliguri',sans-serif;font-size:.82rem;outline:none;background:#fdf8f0;transition:border .2s;margin-left:auto;}
+.sinput:focus{border-color:var(--gold);}
+.ord-list{display:flex;flex-direction:column;gap:11px;}
+.ocard{background:#fff;border:2px solid #f0e8d8;border-radius:var(--r);padding:13px;transition:all .2s;}
+.ocard:hover{border-color:var(--gold);box-shadow:var(--sh);}
+.ocard.newp{border-color:var(--gold);animation:npulse 1s ease;}
+@keyframes npulse{0%,100%{box-shadow:none}50%{box-shadow:0 0 0 4px rgba(201,162,39,.28)}}
+.oh{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;flex-wrap:wrap;gap:5px;}
+.oid{font-family:'Noto Serif Bengali',serif;font-size:.88rem;font-weight:700;color:var(--brown-d);}
+.otime{font-size:.72rem;color:var(--txt-l);}
+.sbadge{padding:3px 11px;border-radius:18px;font-size:.72rem;font-weight:700;display:inline-flex;align-items:center;gap:3px;}
+.s-pending{background:#fef3c7;color:#d97706;}
+.s-preparing{background:#dbeafe;color:#1d4ed8;}
+.s-out{background:#f3e8ff;color:#6d28d9;}
+.s-completed{background:#dcfce7;color:#15803d;}
+.s-cancelled{background:#fee2e2;color:#dc2626;}
+.oinfo{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:7px;}
+.oinfo span{font-size:.8rem;color:var(--txt-m);}
+.oinfo span i{color:var(--gold-d);margin-right:3px;}
+.ozone{background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #86efac;border-radius:var(--rs);padding:5px 10px;margin-bottom:7px;font-size:.78rem;color:#15803d;font-weight:600;}
+.oitems{background:#fdf8f0;border-radius:var(--rs);padding:7px 10px;margin-bottom:7px;font-size:.78rem;color:var(--txt-m);line-height:1.65;}
+.oprice-row{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:7px;}
+.oprice-row span{font-size:.78rem;color:var(--txt-m);}
+.ototal{font-size:1rem;font-weight:700;color:var(--gold-d);}
+.oftr{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:7px;}
+.ssel{padding:5px 9px;border-radius:var(--rs);border:1.5px solid #e8d5b0;font-family:'Hind Siliguri',sans-serif;font-size:.8rem;background:#fff;color:var(--txt);cursor:pointer;outline:none;}
+
+/* MENU/PKG GRID */
+.mh{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:9px;}
+.mh h2{font-family:'Noto Serif Bengali',serif;font-size:1.05rem;font-weight:700;color:var(--brown-d);}
+.addbtn{background:linear-gradient(135deg,var(--gold-d),var(--gold));color:var(--brown-d);border:none;border-radius:var(--rs);padding:9px 16px;font-family:'Hind Siliguri',sans-serif;font-size:.88rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;box-shadow:0 3px 12px rgba(201,162,39,.3);transition:all .2s;}
+.addbtn:hover{transform:translateY(-1px);}
+.mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:11px;}
+.mc{background:#fff;border-radius:var(--r);overflow:hidden;box-shadow:var(--sh);border:1.5px solid #f0e8d8;}
+.mc-img{height:95px;overflow:hidden;background:linear-gradient(135deg,#f5e6c8,#e8d4a0);display:flex;align-items:center;justify-content:center;font-size:2.4rem;}
+.mc-img img{width:100%;height:100%;object-fit:cover;}
+.mc-body{padding:9px;}
+.mc-name{font-size:.86rem;font-weight:700;color:var(--brown-d);margin-bottom:2px;}
+.mc-cat{font-size:.72rem;color:var(--txt-l);margin-bottom:5px;}
+.mc-price{font-size:.8rem;font-weight:600;color:var(--gold-d);margin-bottom:7px;}
+.mc-acts{display:flex;gap:5px;}
+.ebtn,.dbtn{flex:1;padding:5px;border:none;border-radius:6px;font-size:.76rem;font-weight:600;cursor:pointer;transition:all .18s;display:flex;align-items:center;justify-content:center;gap:3px;font-family:'Hind Siliguri',sans-serif;}
+.ebtn{background:#dbeafe;color:#1d4ed8;}.dbtn{background:#fee2e2;color:#dc2626;}
+
+/* ZONE MANAGEMENT */
+.zone-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:11px;}
+.zcard{background:#fff;border-radius:var(--r);box-shadow:var(--sh);border:2px solid #f0e8d8;padding:14px;transition:all .2s;}
+.zcard:hover{border-color:var(--gold);}
+.zcard-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.zcard-name{font-family:'Noto Serif Bengali',serif;font-size:.95rem;font-weight:700;color:var(--brown-d);}
+.zcharge{background:linear-gradient(135deg,var(--gold-d),var(--gold));color:var(--brown-d);border-radius:8px;padding:3px 10px;font-size:.82rem;font-weight:800;}
+.zcharge.free{background:linear-gradient(135deg,#16a34a,#22c55e);color:#fff;}
+.znote{font-size:.75rem;color:var(--txt-l);margin-bottom:10px;}
+.zcard-acts{display:flex;gap:5px;}
+
+/* SETTINGS */
+.sform{max-width:580px;}
+.ssec{background:#fff;border-radius:var(--r);box-shadow:var(--sh);margin-bottom:14px;overflow:hidden;}
+.ssec-h{padding:11px 15px;background:#fdf8f0;border-bottom:2px solid #f0e8d8;font-family:'Noto Serif Bengali',serif;font-size:.92rem;font-weight:700;color:var(--brown-d);display:flex;align-items:center;gap:7px;}
+.ssec-b{padding:15px;}
+.img-prev-row{display:flex;align-items:center;gap:11px;flex-wrap:wrap;margin-top:8px;}
+.img-thumb{width:58px;height:58px;border-radius:8px;overflow:hidden;background:linear-gradient(135deg,var(--gold-d),var(--gold));display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;}
+.img-thumb img{width:100%;height:100%;object-fit:cover;}
+.img-thumb.cover{width:90px;height:52px;border-radius:6px;}
+.upl-label{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,var(--gold-d),var(--gold));color:var(--brown-d);border-radius:var(--rs);padding:8px 14px;font-size:.82rem;font-weight:700;cursor:pointer;}
+
+/* MODAL */
+.movl{position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:800;opacity:0;pointer-events:none;transition:opacity .28s;backdrop-filter:blur(5px);}
+.movl.on{opacity:1;pointer-events:all;}
+.mbox{position:fixed;top:50%;left:50%;transform:translate(-50%,-64%);background:#fff;border-radius:var(--r);width:calc(100% - 28px);max-width:490px;max-height:92vh;overflow-y:auto;z-index:900;opacity:0;transition:transform .35s cubic-bezier(.25,.46,.45,.94),opacity .28s;box-shadow:0 20px 60px rgba(0,0,0,.28);}
+.mbox.on{transform:translate(-50%,-50%);opacity:1;}
+.mh2{background:linear-gradient(135deg,var(--brown-d),var(--brown));padding:14px 18px;display:flex;align-items:center;justify-content:space-between;border-radius:var(--r) var(--r) 0 0;position:sticky;top:0;z-index:10;}
+.mt{font-family:'Noto Serif Bengali',serif;font-size:.98rem;font-weight:800;color:var(--gold);}
+.mcl{background:rgba(255,255,255,.15);border:none;color:#fff;width:29px;height:29px;border-radius:50%;cursor:pointer;font-size:.85rem;display:flex;align-items:center;justify-content:center;}
+.mb{padding:18px;}
+.fg2{margin-bottom:12px;}
+.fg2 label{display:block;font-size:.8rem;font-weight:600;color:var(--brown);margin-bottom:4px;}
+.fg2 input,.fg2 select,.fg2 textarea{width:100%;border:2px solid #e8d5b0;border-radius:var(--rs);padding:8px 11px;font-family:'Hind Siliguri',sans-serif;font-size:.86rem;outline:none;background:#fdf8f0;transition:border .2s;}
+.fg2 input:focus,.fg2 select:focus,.fg2 textarea:focus{border-color:var(--gold);background:#fff;}
+.fg2 textarea{resize:vertical;min-height:68px;}
+.price3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;}
+.img-upload-box{border:2px dashed #e8d5b0;border-radius:var(--rs);padding:18px;text-align:center;cursor:pointer;background:#fdf8f0;transition:all .2s;}
+.img-upload-box:hover{border-color:var(--gold);background:var(--cream);}
+.img-upload-box input{display:none;}
+.iprev{max-width:100%;max-height:110px;border-radius:7px;margin-top:9px;display:none;}
+.savebtn{width:100%;padding:12px;background:linear-gradient(135deg,var(--gold-d),var(--gold));color:var(--brown-d);border:none;border-radius:var(--rs);font-family:'Noto Serif Bengali',serif;font-size:.98rem;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(201,162,39,.3);transition:all .2s;margin-top:3px;}
+.savebtn:disabled{opacity:.6;cursor:not-allowed;}
+.bigsavebtn{width:100%;padding:13px;background:linear-gradient(135deg,var(--brown),var(--brown-l));color:#fff;border:none;border-radius:var(--r);font-family:'Noto Serif Bengali',serif;font-size:1rem;font-weight:800;cursor:pointer;box-shadow:0 4px 16px rgba(92,45,14,.25);transition:all .2s;}
+.bigsavebtn:disabled{opacity:.6;cursor:not-allowed;}
+
+/* PKG ITEMS */
+.pitag-row{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap;}
+.pitag{background:#f5ede0;border:1px solid #e8d5b0;border-radius:6px;padding:3px 8px;font-size:.76rem;color:var(--brown);display:flex;align-items:center;gap:4px;}
+.pitag-rm{background:none;border:none;color:var(--err);cursor:pointer;font-size:.78rem;}
+.additemrow{display:flex;gap:6px;}
+.additemrow input{flex:1;}
+.addi{padding:8px 13px;background:var(--brown);color:#fff;border:none;border-radius:var(--rs);cursor:pointer;font-size:.82rem;white-space:nowrap;font-family:'Hind Siliguri',sans-serif;}
+
+/* NOTIF */
+.ndrop{position:fixed;top:calc(var(--hh) + 2px);right:10px;width:300px;background:#fff;border-radius:var(--r);box-shadow:0 10px 40px rgba(0,0,0,.18);z-index:300;display:none;overflow:hidden;border:2px solid #f0e8d8;}
+.ndrop.on{display:block;animation:fdD .2s ease;}
+@keyframes fdD{from{transform:translateY(-10px);opacity:0}to{transform:translateY(0);opacity:1}}
+.ndrop-h{padding:11px 15px;background:var(--brown-d);color:var(--gold);font-weight:700;display:flex;align-items:center;justify-content:space-between;font-size:.88rem;}
+.ndrop-list{max-height:280px;overflow-y:auto;}
+.ni2{padding:11px 14px;border-bottom:1px solid #f5ede0;cursor:pointer;transition:background .18s;display:flex;gap:9px;}
+.ni2:hover{background:#fdf8f0;}.ni2.unr{background:#fffbeb;}
+.nidot{width:8px;height:8px;border-radius:50%;background:var(--gold);margin-top:4px;flex-shrink:0;}
+.ni2-txt{font-size:.8rem;color:var(--txt);}
+.ni2-time{font-size:.7rem;color:var(--txt-l);margin-top:2px;}
+.ndrop-empty{padding:18px;text-align:center;font-size:.82rem;color:var(--txt-l);}
+
+/* OFFLINE */
+#offBar{display:none;background:#f59e0b;color:var(--brown-d);text-align:center;padding:7px;font-size:.8rem;font-weight:700;}
+
+/* SPINNER */
+.spin{display:inline-block;width:18px;height:18px;border:3px solid rgba(201,162,39,.3);border-top-color:var(--gold);border-radius:50%;animation:sp .8s linear infinite;}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* TOAST */
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(14px);background:var(--brown-d);color:var(--gold-l);padding:9px 20px;border-radius:22px;font-size:.8rem;font-weight:600;opacity:0;z-index:1000;transition:all .28s;border:1px solid var(--gold);pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center;}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* RESPONSIVE */
+.sb-ovl{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:190;display:none;}
+@media(max-width:768px){
+  .sb{transform:translateX(-100%);}.sb.mopen{transform:translateX(0);}
+  .sb-ovl.on{display:block;}.main{margin-left:0;}.hamburger{display:block;}
+}
+
+/* ZONE HELPER BADGE */
+.zone-stat-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;}
+.zone-stat{background:#fff;border-radius:var(--rs);padding:8px 14px;box-shadow:var(--sh);font-size:.82rem;font-weight:600;color:var(--brown);}
+.zone-stat span{font-size:1.1rem;font-weight:800;color:var(--gold-d);display:block;}
+</style>
+</head>
+<body>
+
+<div id="offBar">📵 অফলাইন — সংযোগ পুনরুদ্ধার হলে স্বয়ংক্রিয়ভাবে সিঙ্ক হবে</div>
+<div class="toast" id="toast"></div>
+
+<!-- ==================== LOGIN ==================== -->
+<div id="loginPage">
+  <div class="lc">
+    <div class="lc-logo">
+      <div class="lc-icon">🍛</div>
+      <h1>কাচ্চি ডাইন</h1>
+      <p>অ্যাডমিন কন্ট্রোল প্যানেল</p>
+    </div>
+    <div class="fg"><label><i class="fas fa-envelope"></i> ইমেইল</label><input type="email" id="lemail" placeholder="admin@email.com"></div>
+    <div class="fg"><label><i class="fas fa-lock"></i> পাসওয়ার্ড</label><input type="password" id="lpass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <button class="login-btn" onclick="doLogin()"><i class="fas fa-sign-in-alt"></i> লগইন করুন</button>
+    <div class="lerr" id="lerr"></div>
+    <p class="login-hint">Firebase Authentication দিয়ে সুরক্ষিত</p>
+  </div>
+</div>
+
+<!-- ==================== ADMIN APP ==================== -->
+<div id="adminApp">
+  <div class="wrap">
+    <div class="sb-ovl" id="sbOvl" onclick="closeSb()"></div>
+
+    <!-- SIDEBAR -->
+    <aside class="sb" id="sb">
+      <div class="sb-logo">
+        <h2>কাচ্চি ডাইন</h2>
+        <small id="sbBranch">মানিকগঞ্জ শাখা</small><br>
+        <span class="abadge">ADMIN</span>
+      </div>
+      <nav>
+        <div class="nsec">ড্যাশবোর্ড</div>
+        <a class="ni on" onclick="goPage('dashboard',this)"><i class="fas fa-tachometer-alt"></i> ড্যাশবোর্ড</a>
+        <div class="nsec">অর্ডার</div>
+        <a class="ni" onclick="goPage('orders',this)"><i class="fas fa-receipt"></i> সব অর্ডার <span class="nbadge" id="pendBadge" style="display:none">0</span></a>
+        <div class="nsec">মেনু</div>
+        <a class="ni" onclick="goPage('menu',this)"><i class="fas fa-utensils"></i> মেনু আইটেম</a>
+        <a class="ni" onclick="goPage('packages',this)"><i class="fas fa-box-open"></i> রমজান প্যাকেজ</a>
+        <div class="nsec">ডেলিভারি</div>
+        <a class="ni" onclick="goPage('zones',this)"><i class="fas fa-motorcycle"></i> ডেলিভারি জোন</a>
+        <div class="nsec">সেটিংস</div>
+        <a class="ni" onclick="goPage('settings',this)"><i class="fas fa-cog"></i> রেস্টুরেন্ট সেটিংস</a>
+        <a class="ni" onclick="goPage('password',this)"><i class="fas fa-lock"></i> পাসওয়ার্ড পরিবর্তন</a>
+        <a class="ni" onclick="openCustomerSite()" style="cursor:pointer"><i class="fas fa-external-link-alt"></i> কাস্টমার সাইট</a>
+        <a class="ni" onclick="openBranchMaker()" style="cursor:pointer"><i class="fas fa-code-branch"></i> নতুন শাখা তৈরি</a>
+      </nav>
+      <div class="sb-ftr">
+        <button class="logout" onclick="doLogout()"><i class="fas fa-sign-out-alt"></i> লগআউট</button>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <div class="main">
+      <div class="topbar">
+        <div class="tb-l">
+          <button class="hamburger" onclick="toggleSb()"><i class="fas fa-bars"></i></button>
+          <div class="tb-title" id="pageTitle">ড্যাশবোর্ড</div>
+        </div>
+        <div class="tb-r">
+          <div class="notif-btn" onclick="toggleNdrop()"><i class="fas fa-bell"></i><div id="ndot"></div></div>
+          <div class="avatar"><i class="fas fa-user-shield"></i></div>
+        </div>
+      </div>
+
+      <!-- NOTIF DROPDOWN -->
+      <div class="ndrop" id="ndrop">
+        <div class="ndrop-h">নোটিফিকেশন <span style="font-size:.72rem;cursor:pointer" onclick="clearNotifs()">সব পড়েছি</span></div>
+        <div class="ndrop-list" id="ndropList"><div class="ndrop-empty">কোনো নোটিফিকেশন নেই</div></div>
+      </div>
+
+      <!-- BRANCH SWITCHER BAR -->
+      <div id="branchBar" style="background:linear-gradient(135deg,#1a0800,#3A1A06);padding:8px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-bottom:2px solid var(--gold);">
+        <div style="font-size:.75rem;font-weight:700;color:rgba(255,255,255,.6);white-space:nowrap;"><i class="fas fa-code-branch" style="color:var(--gold)"></i> শাখা:</div>
+        <div id="branchTabs" style="display:flex;gap:6px;flex-wrap:wrap;flex:1;"></div>
+        <button onclick="addBranchPrompt()" style="background:rgba(201,162,39,.15);border:1.5px solid var(--gold);border-radius:20px;padding:4px 12px;font-family:'Hind Siliguri',sans-serif;font-size:.72rem;font-weight:700;color:var(--gold);cursor:pointer;white-space:nowrap;">
+          <i class="fas fa-plus"></i> শাখা যোগ
+        </button>
+      </div>
+
+      <!-- ======= DASHBOARD ======= -->
+      <div class="pg on" id="pg-dashboard">
+        <div class="stats">
+          <div class="sc"><div class="sc-icon">📦</div><div class="sc-label">মোট অর্ডার</div><div class="sc-val" id="sTotal">০</div></div>
+          <div class="sc"><div class="sc-icon">📅</div><div class="sc-label">আজকের অর্ডার</div><div class="sc-val" id="sToday">০</div></div>
+          <div class="sc"><div class="sc-icon">⏳</div><div class="sc-label">পেন্ডিং</div><div class="sc-val" id="sPend">০</div></div>
+          <div class="sc"><div class="sc-icon">✅</div><div class="sc-label">সম্পন্ন</div><div class="sc-val" id="sComp">০</div></div>
+        </div>
+        <div class="dash-grid">
+          <div class="card">
+            <div class="card-h"><h3><i class="fas fa-clock" style="color:var(--warn)"></i> সাম্প্রতিক অর্ডার</h3>
+              <button style="background:none;border:none;color:var(--gold-d);cursor:pointer;font-size:.78rem" onclick="goPage('orders',document.querySelectorAll('.ni')[1])">সব দেখুন →</button>
+            </div>
+            <div class="card-b" id="recentOList">লোড হচ্ছে...</div>
+          </div>
+          <div class="card">
+            <div class="card-h"><h3><i class="fas fa-chart-bar" style="color:var(--info)"></i> স্ট্যাটাস চার্ট</h3></div>
+            <div class="card-b" id="statusChart"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ======= ORDERS ======= -->
+      <div class="pg" id="pg-orders">
+        <div class="ord-filters">
+          <button class="fbadge on" onclick="filtOrders('all',this)">সব</button>
+          <button class="fbadge" onclick="filtOrders('pending',this)">পেন্ডিং</button>
+          <button class="fbadge" onclick="filtOrders('preparing',this)">প্রস্তুত</button>
+          <button class="fbadge" onclick="filtOrders('out_for_delivery',this)">ডেলিভারি</button>
+          <button class="fbadge" onclick="filtOrders('completed',this)">সম্পন্ন</button>
+          <button class="fbadge" onclick="filtOrders('cancelled',this)">বাতিল</button>
+          <input class="sinput" id="osearch" placeholder="অর্ডার খুঁজুন..." oninput="applyOFilt()">
+        </div>
+        <div class="ord-list" id="ordList">লোড হচ্ছে...</div>
+      </div>
+
+      <!-- ======= MENU ======= -->
+      <div class="pg" id="pg-menu">
+        <div class="mh"><h2>মেনু আইটেম</h2><button class="addbtn" onclick="openMenuMod()"><i class="fas fa-plus"></i> নতুন আইটেম</button></div>
+        <div class="mgrid" id="menuGrid">লোড হচ্ছে...</div>
+      </div>
+
+      <!-- ======= PACKAGES ======= -->
+      <div class="pg" id="pg-packages">
+        <div class="mh"><h2>রমজান প্যাকেজ</h2><button class="addbtn" onclick="openPkgMod()"><i class="fas fa-plus"></i> নতুন প্যাকেজ</button></div>
+        <div class="mgrid" id="pkgGrid">লোড হচ্ছে...</div>
+      </div>
+
+      <!-- ======= DELIVERY ZONES ======= -->
+      <div class="pg" id="pg-zones">
+        <div class="mh">
+          <h2>ডেলিভারি জোন ম্যানেজমেন্ট</h2>
+          <button class="addbtn" onclick="openZoneMod()"><i class="fas fa-plus"></i> নতুন এলাকা</button>
+        </div>
+        <!-- Zone stats -->
+        <div class="zone-stat-row" id="zoneStatRow"></div>
+        <!-- Zone cards -->
+        <div class="zone-grid" id="zoneGrid">লোড হচ্ছে...</div>
+        <!-- Help text -->
+        <div style="background:#fff;border-radius:var(--rs);padding:14px;margin-top:14px;border:1px solid #e8d5b0;">
+          <p style="font-size:.8rem;color:var(--txt-m);line-height:1.7;">
+            <strong style="color:var(--brown-d)"><i class="fas fa-info-circle" style="color:var(--gold)"></i> কীভাবে কাজ করে?</strong><br>
+            এখানে আপনি প্রতিটি এলাকার জন্য আলাদা ডেলিভারি চার্জ নির্ধারণ করতে পারবেন।
+            কাস্টমার অর্ডার করার সময় তার এলাকা বেছে নিলে স্বয়ংক্রিয়ভাবে সঠিক ডেলিভারি চার্জ যোগ হবে।
+            চার্জ <strong>০</strong> রাখলে সেই এলাকায় বিনামূল্যে ডেলিভারি হবে।
+          </p>
+        </div>
+      </div>
+
+      <!-- ======= SETTINGS ======= -->
+      <div class="pg" id="pg-settings">
+        <div class="sform">
+          <div class="ssec">
+            <div class="ssec-h"><i class="fas fa-store" style="color:var(--gold)"></i> রেস্টুরেন্ট তথ্য</div>
+            <div class="ssec-b">
+              <div class="fg2"><label>রেস্টুরেন্টের নাম</label><input type="text" id="st-name" placeholder="কাচ্চি ডাইন"></div>
+              <div class="fg2"><label>শাখার নাম</label><input type="text" id="st-branch" placeholder="মানিকগঞ্জ শাখা"></div>
+              <div class="fg2"><label>হটলাইন নম্বর</label><input type="tel" id="st-hotline" placeholder="01700-000000"></div>
+              <div class="fg2"><label>ঠিকানা</label><input type="text" id="st-addr" placeholder="মানিকগঞ্জ, ঢাকা"></div>
+            </div>
+          </div>
+          <div class="ssec">
+            <div class="ssec-h"><i class="fas fa-share-alt" style="color:var(--gold)"></i> সোশ্যাল মিডিয়া</div>
+            <div class="ssec-b">
+              <div class="fg2"><label><i class="fab fa-facebook" style="color:#1877f2"></i> ফেসবুক পেজ</label><input type="url" id="st-fb" placeholder="https://facebook.com/..."></div>
+              <div class="fg2">
+                <label><i class="fab fa-whatsapp" style="color:#25d366"></i> হোয়াটসঅ্যাপ নম্বর</label>
+                <input type="text" id="st-wa" placeholder="01810190892 অথবা 8801810190892"
+                  oninput="previewWaNum(this.value)">
+                <div id="waNumPreview" style="margin-top:6px;padding:7px 11px;background:#f0fdf4;border-radius:7px;font-size:.78rem;color:#15803d;display:none;">
+                  ✅ WhatsApp লিংক: <span id="waNumShow"></span>
+                </div>
+                <div style="font-size:.75rem;color:#92400e;background:#fffbeb;border-radius:6px;padding:6px 10px;margin-top:6px;line-height:1.6;">
+                  ⚠️ শুধু নম্বর লিখুন — <strong>01810190892</strong> অথবা <strong>8801810190892</strong><br>
+                  https://wa.me/... লেখার দরকার নেই
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="ssec">
+            <div class="ssec-h"><i class="fas fa-image" style="color:var(--gold)"></i> লোগো ও কভার ছবি</div>
+            <div class="ssec-b">
+              <!-- LOGO -->
+              <div class="fg2">
+                <label style="font-size:.82rem;font-weight:600;color:var(--brown);display:block;margin-bottom:8px">লোগো (সর্বোচ্চ ৪০০KB)</label>
+                <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                  <div class="img-thumb" id="logoThumb">🍛</div>
+                  <div>
+                    <input type="file" id="logoFile" accept="image/*" style="display:none" onchange="handleImg(this,'logo')">
+                    <button type="button" onclick="document.getElementById('logoFile').click()"
+                      style="background:linear-gradient(135deg,var(--gold-d),var(--gold));color:var(--brown-d);border:none;border-radius:var(--rs);padding:9px 16px;font-family:'Hind Siliguri',sans-serif;font-size:.85rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:7px;">
+                      <i class="fas fa-upload"></i> লোগো ছবি বেছে নিন
+                    </button>
+                    <div id="logoFileName" style="font-size:.72rem;color:var(--txt-l);margin-top:5px">কোনো ফাইল বাছা হয়নি</div>
+                  </div>
+                </div>
+              </div>
+              <!-- COVER -->
+              <div class="fg2" style="margin-top:12px">
+                <label style="font-size:.82rem;font-weight:600;color:var(--brown);display:block;margin-bottom:8px">কভার ছবি (সর্বোচ্চ ৪০০KB)</label>
+                <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                  <div class="img-thumb cover" id="coverThumb">🏠</div>
+                  <div>
+                    <input type="file" id="coverFile" accept="image/*" style="display:none" onchange="handleImg(this,'cover')">
+                    <button type="button" onclick="document.getElementById('coverFile').click()"
+                      style="background:linear-gradient(135deg,var(--gold-d),var(--gold));color:var(--brown-d);border:none;border-radius:var(--rs);padding:9px 16px;font-family:'Hind Siliguri',sans-serif;font-size:.85rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:7px;">
+                      <i class="fas fa-upload"></i> কভার ছবি বেছে নিন
+                    </button>
+                    <div id="coverFileName" style="font-size:.72rem;color:var(--txt-l);margin-top:5px">কোনো ফাইল বাছা হয়নি</div>
+                  </div>
+                </div>
+                <div style="background:#fef3c7;border-radius:var(--rs);padding:8px 12px;margin-top:10px;font-size:.75rem;color:#92400e;">
+                  💡 ছবি Base64 হিসেবে Realtime DB তে সেভ হবে।<br>
+                  ছবির সাইজ ছোট রাখুন — বড় ছবি DB-তে সেভ নাও হতে পারে।<br>
+                  ছবি compress করুন: <strong>tinypng.com</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+          <button class="bigsavebtn" id="settSaveBtn" onclick="saveSettings()"><i class="fas fa-save"></i> সেটিংস সংরক্ষণ করুন</button>
+
+          <!-- RULES HELP BOX — always visible in settings -->
+          <div style="background:#f0fdf4;border:2px solid #86efac;border-radius:var(--r);padding:16px;margin-top:16px;">
+            <div style="font-family:'Noto Serif Bengali',serif;font-size:.95rem;font-weight:800;color:#15803d;margin-bottom:10px;display:flex;align-items:center;gap:7px;">
+              <i class="fas fa-shield-alt"></i> Firebase Realtime Database Rules
+            </div>
+            <p style="font-size:.8rem;color:#166534;margin-bottom:10px;line-height:1.7">
+              যদি <strong>PERMISSION_DENIED</strong> error আসে, তাহলে নিচের Rules Firebase Console-এ পেস্ট করুন:<br>
+              <strong>Firebase Console → Realtime Database → Rules ট্যাব → নিচের কোড পেস্ট → Publish</strong>
+            </p>
+            <pre style="background:#0f172a;color:#4ade80;padding:14px;border-radius:8px;font-size:.73rem;overflow-x:auto;white-space:pre;line-height:1.8;margin-bottom:10px">{
+  "rules": {
+    "settings": {
+      ".read": true,
+      ".write": "auth != null"
+    },
+    "menu": {
+      ".read": true,
+      ".write": "auth != null"
+    },
+    "packages": {
+      ".read": true,
+      ".write": "auth != null"
+    },
+    "orders": {
+      ".read": "auth != null",
+      ".write": true
+    },
+    "zones": {
+      ".read": true,
+      ".write": "auth != null"
+    }
+  }
+}</pre>
+            <div style="font-size:.78rem;color:#166534;line-height:1.6">
+              📌 <strong>auth != null</strong> মানে — শুধু লগইন করা অ্যাডমিন লিখতে পারবেন<br>
+              📌 <strong>orders .write: true</strong> মানে — কাস্টমার অর্ডার দিতে পারবেন (লগইন ছাড়া)<br>
+              📌 সব <strong>.read: true</strong> মানে — কাস্টমার মেনু দেখতে পারবেন
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ======= PASSWORD CHANGE ======= -->
+      <div class="pg" id="pg-password">
+        <div class="sform">
+
+          <!-- Current user info -->
+          <div style="background:linear-gradient(135deg,var(--brown-d),var(--brown));border-radius:var(--r);padding:18px;margin-bottom:16px;display:flex;align-items:center;gap:14px;">
+            <div style="width:52px;height:52px;border-radius:50%;background:rgba(201,162,39,.25);border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0;">
+              <i class="fas fa-user-shield" style="color:var(--gold)"></i>
+            </div>
+            <div>
+              <div style="font-family:'Noto Serif Bengali',serif;font-size:1rem;font-weight:800;color:var(--gold)">অ্যাডমিন অ্যাকাউন্ট</div>
+              <div id="pwUserEmail" style="font-size:.82rem;color:rgba(255,255,255,.7);margin-top:2px">—</div>
+            </div>
+          </div>
+
+          <div class="ssec">
+            <div class="ssec-h"><i class="fas fa-lock" style="color:var(--gold)"></i> পাসওয়ার্ড পরিবর্তন করুন</div>
+            <div class="ssec-b">
+
+              <div class="fg2">
+                <label><i class="fas fa-lock"></i> বর্তমান পাসওয়ার্ড *</label>
+                <div style="position:relative">
+                  <input type="password" id="pw-current" placeholder="বর্তমান পাসওয়ার্ড দিন"
+                    style="padding-right:42px">
+                  <button type="button" onclick="togglePw('pw-current','eye-cur')"
+                    style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--txt-l);cursor:pointer;font-size:1rem;">
+                    <i class="fas fa-eye" id="eye-cur"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div class="fg2">
+                <label><i class="fas fa-key"></i> নতুন পাসওয়ার্ড *</label>
+                <div style="position:relative">
+                  <input type="password" id="pw-new" placeholder="নতুন পাসওয়ার্ড (সর্বনিম্ন ৬ অক্ষর)"
+                    oninput="checkPwStrength()" style="padding-right:42px">
+                  <button type="button" onclick="togglePw('pw-new','eye-new')"
+                    style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--txt-l);cursor:pointer;font-size:1rem;">
+                    <i class="fas fa-eye" id="eye-new"></i>
+                  </button>
+                </div>
+                <!-- Password strength bar -->
+                <div style="margin-top:7px">
+                  <div style="height:5px;background:#f0e8d8;border-radius:3px;overflow:hidden">
+                    <div id="pwStrBar" style="height:100%;width:0%;border-radius:3px;transition:all .3s"></div>
+                  </div>
+                  <div id="pwStrText" style="font-size:.72rem;margin-top:4px;color:var(--txt-l)"></div>
+                </div>
+              </div>
+
+              <div class="fg2">
+                <label><i class="fas fa-check-circle"></i> নতুন পাসওয়ার্ড নিশ্চিত করুন *</label>
+                <div style="position:relative">
+                  <input type="password" id="pw-confirm" placeholder="পাসওয়ার্ড আবার দিন"
+                    oninput="checkPwMatch()" style="padding-right:42px">
+                  <button type="button" onclick="togglePw('pw-confirm','eye-con')"
+                    style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--txt-l);cursor:pointer;font-size:1rem;">
+                    <i class="fas fa-eye" id="eye-con"></i>
+                  </button>
+                </div>
+                <div id="pwMatchText" style="font-size:.75rem;margin-top:5px;display:none"></div>
+              </div>
+
+              <!-- Rules reminder -->
+              <div style="background:#fdf8f0;border:1.5px solid #e8d5b0;border-radius:var(--rs);padding:11px;margin-bottom:14px;">
+                <div style="font-size:.78rem;color:var(--txt-m);line-height:1.7;">
+                  <strong style="color:var(--brown-d)">পাসওয়ার্ডের নিয়ম:</strong><br>
+                  ✅ সর্বনিম্ন ৬টি অক্ষর<br>
+                  ✅ অক্ষর ও সংখ্যা মিলিয়ে দিন (শক্তিশালী হবে)<br>
+                  ✅ কাউকে শেয়ার করবেন না
+                </div>
+              </div>
+
+              <button class="bigsavebtn" id="pwChangeBtn" onclick="changePassword()">
+                <i class="fas fa-lock"></i> পাসওয়ার্ড পরিবর্তন করুন
+              </button>
+
+              <!-- Success message -->
+              <div id="pwSuccess" style="display:none;margin-top:14px;background:#f0fdf4;border:2px solid #86efac;border-radius:var(--rs);padding:14px;text-align:center;">
+                <div style="font-size:2rem;margin-bottom:6px">✅</div>
+                <div style="font-family:'Noto Serif Bengali',serif;font-size:.95rem;font-weight:800;color:#15803d">পাসওয়ার্ড সফলভাবে পরিবর্তিত হয়েছে!</div>
+                <div style="font-size:.8rem;color:#166534;margin-top:5px">পরের বার নতুন পাসওয়ার্ড দিয়ে লগইন করুন</div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Forgot password section -->
+          <div class="ssec">
+            <div class="ssec-h"><i class="fas fa-envelope" style="color:var(--gold)"></i> পাসওয়ার্ড ভুলে গেছেন?</div>
+            <div class="ssec-b">
+              <p style="font-size:.82rem;color:var(--txt-m);margin-bottom:12px;line-height:1.6">
+                আপনার ইমেইলে পাসওয়ার্ড রিসেট লিংক পাঠানো হবে।
+              </p>
+              <div id="pwResetEmail" style="background:#fdf8f0;border:1.5px solid #e8d5b0;border-radius:var(--rs);padding:9px 12px;font-size:.85rem;color:var(--brown-d);margin-bottom:11px;font-weight:600;"></div>
+              <button onclick="sendResetEmail()"
+                style="background:linear-gradient(135deg,var(--brown),var(--brown-l));color:#fff;border:none;border-radius:var(--rs);padding:11px 18px;font-family:'Hind Siliguri',sans-serif;font-size:.88rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:7px;transition:all .2s;">
+                <i class="fas fa-paper-plane"></i> রিসেট ইমেইল পাঠান
+              </button>
+              <div id="resetMsg" style="display:none;margin-top:10px;font-size:.8rem;padding:8px 12px;border-radius:var(--rs);"></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+
+<!-- ===== MENU ITEM MODAL ===== -->
+<div class="movl" id="menuMOvl">
+  <div class="mbox" id="menuMBox">
+    <div class="mh2"><div class="mt" id="menuMTitle">নতুন মেনু আইটেম</div><button class="mcl" onclick="closeMenuMod()"><i class="fas fa-times"></i></button></div>
+    <div class="mb">
+      <input type="hidden" id="meditId">
+      <div class="fg2"><label>আইটেমের নাম *</label><input type="text" id="m-name" placeholder="বাসমতি কাচ্চি বিরিয়ানি"></div>
+      <div class="fg2">
+        <label>ক্যাটাগরি *</label>
+        <select id="m-cat">
+          <option value="">বেছে নিন</option>
+          <option value="কাচ্চি">কাচ্চি</option>
+          <option value="চিকেন দম বিরিয়ানি">চিকেন দম বিরিয়ানি</option>
+          <option value="মাটন তেহারি">মাটন তেহারি</option>
+          <option value="প্লেইন পোলাও">প্লেইন পোলাও</option>
+          <option value="সাইড আইটেম">সাইড আইটেম</option>
+          <option value="ডেজার্ট ও ড্রিংকস">ডেজার্ট ও ড্রিংকস</option>
+        </select>
+      </div>
+      <div class="fg2"><label>বিবরণ</label><textarea id="m-desc" placeholder="খাবারের বিবরণ..."></textarea></div>
+      
+      <!-- DYNAMIC SIZES -->
+      <div class="fg2">
+        <label>সাইজ ও মূল্য <small style="color:var(--txt-l);font-weight:400">(সর্বোচ্চ ৮টি সাইজ)</small></label>
+        <!-- Quick Preset Buttons -->
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
+          <span style="font-size:.75rem;color:var(--txt-l);align-self:center;">দ্রুত সেট:</span>
+          <button type="button" onclick="setPreset(['১ জনের','৩ জনের','৫ জনের'])"
+            style="background:#e8d5b0;border:none;border-radius:20px;padding:4px 11px;font-family:'Hind Siliguri',sans-serif;font-size:.75rem;font-weight:600;color:var(--brown-d);cursor:pointer;">
+            👨 ১/৩/৫ জনের
+          </button>
+          <button type="button" onclick="setPreset(['ছোট','মাঝারি','বড়'])"
+            style="background:#e8d5b0;border:none;border-radius:20px;padding:4px 11px;font-family:'Hind Siliguri',sans-serif;font-size:.75rem;font-weight:600;color:var(--brown-d);cursor:pointer;">
+            📦 ছোট/মাঝারি/বড়
+          </button>
+          <button type="button" onclick="setPreset(['হাফ কেজি','১ কেজি'])"
+            style="background:#e8d5b0;border:none;border-radius:20px;padding:4px 11px;font-family:'Hind Siliguri',sans-serif;font-size:.75rem;font-weight:600;color:var(--brown-d);cursor:pointer;">
+            ⚖️ হাফ/১ কেজি
+          </button>
+          <button type="button" onclick="setPreset(['১ পিস','৩ পিস','৫ পিস'])"
+            style="background:#e8d5b0;border:none;border-radius:20px;padding:4px 11px;font-family:'Hind Siliguri',sans-serif;font-size:.75rem;font-weight:600;color:var(--brown-d);cursor:pointer;">
+            🍢 ১/৩/৫ পিস
+          </button>
+          <button type="button" onclick="setPreset(['১ প্লেট'])"
+            style="background:#e8d5b0;border:none;border-radius:20px;padding:4px 11px;font-family:'Hind Siliguri',sans-serif;font-size:.75rem;font-weight:600;color:var(--brown-d);cursor:pointer;">
+            🍽️ এক দাম
+          </button>
+        </div>
+        <div id="sizeRows"></div>
+        <button type="button" onclick="addSizeRow()"
+          style="margin-top:8px;background:#f5ede0;border:1.5px dashed #e8d5b0;border-radius:var(--rs);padding:7px 14px;font-family:'Hind Siliguri',sans-serif;font-size:.82rem;font-weight:600;color:var(--brown);cursor:pointer;width:100%;display:flex;align-items:center;justify-content:center;gap:6px;">
+          <i class="fas fa-plus"></i> আরও সাইজ যোগ করুন
+        </button>
+        <small style="color:var(--txt-l);font-size:.72rem;display:block;margin-top:5px">
+          💡 নিজের মতো লিখুন: ১ জনের / ফ্যামিলি প্যাক / হাফ কেজি / ৫ পিস ইত্যাদি
+        </small>
+      </div>
+      <div class="fg2"><label>ইমোজি</label><input type="text" id="m-emoji" placeholder="🍛"></div>
+      <div class="fg2">
+        <label>ছবি (সর্বোচ্চ ২৫০KB)</label>
+        <div style="border:2px dashed #e8d5b0;border-radius:var(--rs);padding:14px;background:#fdf8f0;">
+          <input type="file" id="m-img-file" accept="image/*" style="width:100%;margin-bottom:8px;font-family:'Hind Siliguri',sans-serif;font-size:.82rem;" onchange="previewMenuImg(this)">
+          <img id="m-img-prev" style="max-width:100%;max-height:110px;border-radius:7px;display:none;margin-top:5px">
+          <div style="font-size:.72rem;color:var(--txt-l);margin-top:5px">💡 ছবি ছোট রাখুন (tinypng.com)</div>
+        </div>
+      </div>
+      <button class="savebtn" id="menuSaveBtn" onclick="saveMenuItem()"><i class="fas fa-save"></i> সংরক্ষণ করুন</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PACKAGE MODAL ===== -->
+<div class="movl" id="pkgMOvl">
+  <div class="mbox" id="pkgMBox">
+    <div class="mh2"><div class="mt" id="pkgMTitle">নতুন প্যাকেজ</div><button class="mcl" onclick="closePkgMod()"><i class="fas fa-times"></i></button></div>
+    <div class="mb">
+      <input type="hidden" id="peditId">
+      <div class="fg2"><label>প্যাকেজের নাম *</label><input type="text" id="p-name" placeholder="প্যাকেজ ০১"></div>
+      <div class="fg2"><label>মূল্য (টাকা) *</label><input type="number" id="p-price" placeholder="৳" min="0"></div>
+      <div class="fg2"><label>ইমোজি</label><input type="text" id="p-emoji" placeholder="🌙"></div>
+      <div class="fg2">
+        <label>আইটেম তালিকা</label>
+        <div class="additemrow">
+          <input type="text" id="p-item-inp" placeholder="আইটেম লিখুন..." onkeydown="if(event.key==='Enter')addPItem()">
+          <button class="addi" onclick="addPItem()">যোগ করুন</button>
+        </div>
+        <div class="pitag-row" id="pitemTags"></div>
+      </div>
+      <div class="fg2">
+        <label>ছবি (সর্বোচ্চ ২৫০KB)</label>
+        <div style="border:2px dashed #e8d5b0;border-radius:var(--rs);padding:14px;background:#fdf8f0;">
+          <input type="file" id="p-img-file" accept="image/*" style="width:100%;margin-bottom:8px;font-family:'Hind Siliguri',sans-serif;font-size:.82rem;" onchange="previewPkgImg(this)">
+          <img id="p-img-prev" style="max-width:100%;max-height:110px;border-radius:7px;display:none;margin-top:5px">
+          <div style="font-size:.72rem;color:var(--txt-l);margin-top:5px">💡 ছবি ছোট রাখুন (tinypng.com)</div>
+        </div>
+      </div>
+      <button class="savebtn" id="pkgSaveBtn" onclick="savePackage()"><i class="fas fa-save"></i> সংরক্ষণ করুন</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ZONE MODAL ===== -->
+<div class="movl" id="zoneMOvl">
+  <div class="mbox" id="zoneMBox">
+    <div class="mh2"><div class="mt" id="zoneMTitle">নতুন ডেলিভারি এলাকা</div><button class="mcl" onclick="closeZoneMod()"><i class="fas fa-times"></i></button></div>
+    <div class="mb">
+      <input type="hidden" id="zeditId">
+      <div class="fg2"><label><i class="fas fa-map-marker-alt"></i> এলাকার নাম *</label><input type="text" id="z-name" placeholder="যেমন: মানিকগঞ্জ সদর"></div>
+      <div class="fg2">
+        <label><i class="fas fa-taka-sign"></i> ডেলিভারি চার্জ (টাকা) *</label>
+        <input type="number" id="z-charge" placeholder="0 = বিনামূল্যে" min="0">
+        <small style="color:var(--txt-l);font-size:.72rem;margin-top:4px;display:block">০ দিলে সেই এলাকায় বিনামূল্যে ডেলিভারি হবে</small>
+      </div>
+      <div class="fg2"><label><i class="fas fa-info-circle"></i> বিশেষ নোট (ঐচ্ছিক)</label><input type="text" id="z-note" placeholder="যেমন: ৩০ টাকা ডেলিভারি চার্জ"></div>
+      <div class="fg2">
+        <label>ক্রম (Sorting Order)</label>
+        <input type="number" id="z-order" placeholder="1, 2, 3..." min="1" value="1">
+      </div>
+      <!-- Live preview -->
+      <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:var(--rs);padding:11px;margin-bottom:14px;">
+        <div style="font-size:.78rem;color:#15803d;font-weight:600;margin-bottom:5px">📋 প্রিভিউ (কাস্টমারকে দেখাবে):</div>
+        <div id="zPreview" style="font-size:.88rem;color:var(--brown-d)">—</div>
+      </div>
+      <button class="savebtn" id="zoneSaveBtn" onclick="saveZone()"><i class="fas fa-save"></i> এলাকা সংরক্ষণ করুন</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   OFFLINE CHECK
+============================================================ */
+function chkOnline(){ document.getElementById('offBar').style.display=navigator.onLine?'none':'block'; }
+window.addEventListener('online', chkOnline);
+window.addEventListener('offline', chkOnline);
+chkOnline();
+
+/* ============================================================
+   AUTH
+============================================================ */
+auth.onAuthStateChanged(u=>{
+  if(u){
+    document.getElementById('loginPage').style.display='none';
+    document.getElementById('adminApp').style.display='block';
+    initAdmin();
+  } else {
+    document.getElementById('loginPage').style.display='flex';
+    document.getElementById('adminApp').style.display='none';
+  }
+});
+async function doLogin(){
+  const em=document.getElementById('lemail').value.trim();
+  const pw=document.getElementById('lpass').value;
+  const err=document.getElementById('lerr'); err.style.display='none';
+  if(!em||!pw){ showErr('ইমেইল ও পাসওয়ার্ড দিন'); return; }
+  try{ await auth.signInWithEmailAndPassword(em,pw); }
+  catch(e){ showErr('ভুল ইমেইল বা পাসওয়ার্ড'); }
+}
+function showErr(m){ const e=document.getElementById('lerr'); e.textContent=m; e.style.display='block'; }
+async function doLogout(){ await auth.signOut(); }
+
+/* ============================================================
+   STATE
+============================================================ */
+let allOrders=[], allMenu=[], allPkgs=[], allZones=[], notifs=[];
+let oFiltStat='all';
+let curPItems=[], menuImgData='', pkgImgData='';
+let settImgs={logo:'',cover:''};
+let settData={name:'কাচ্চি ডাইন',branch:'মানিকগঞ্জ শাখা',hotline:'01700-000000',address:'',facebook:'',whatsapp:'',logo:'',cover:''};
+
+const DEF_ZONES=[
+  {id:'dz1',name:'মানিকগঞ্জ সদর',charge:0,  note:'বিনামূল্যে ডেলিভারি',order:1,active:true},
+  {id:'dz2',name:'ঘিওর',           charge:40, note:'৪০ টাকা ডেলিভারি',  order:2,active:true},
+  {id:'dz3',name:'সিংগাইর',        charge:50, note:'৫০ টাকা ডেলিভারি',  order:3,active:true},
+  {id:'dz4',name:'হরিরামপুর',      charge:60, note:'৬০ টাকা ডেলিভারি',  order:4,active:true},
+  {id:'dz5',name:'শিবালয়',         charge:70, note:'৭০ টাকা ডেলিভারি',  order:5,active:true},
+  {id:'dz6',name:'দৌলতপুর',        charge:80, note:'৮০ টাকা ডেলিভারি',  order:6,active:true},
+  {id:'dz7',name:'সাটুরিয়া',       charge:60, note:'৬০ টাকা ডেলিভারি',  order:7,active:true},
+  {id:'dz8',name:'অন্যান্য এলাকা', charge:100,note:'১০০ টাকা ডেলিভারি', order:8,active:true},
+];
+
+/* ============================================================
+   INIT
+============================================================ */
+function initAdmin(){
+  listenSettings();
+  listenOrders();
+  listenMenu();
+  listenPkgs();
+  listenZones();
+}
+
+/* ============================================================
+   LISTENERS
+============================================================ */
+function listenSettings(){
+  dbRef('settings').on('value', snap=>{
+    const v=snap.val();
+    // শাখা বদলালে পুরনো ডেটা রিসেট করো
+    settData={name:'কাচ্চি ডাইন',branch:'',hotline:'',address:'',facebook:'',whatsapp:'',logo:'',cover:''};
+    if(v){ settData={...settData,...v}; }
+    applySett();
+  });
+}
+function applySett(){
+  document.getElementById('sbBranch').textContent = settData.branch||'মানিকগঞ্জ শাখা';
+  document.getElementById('st-name').value    = settData.name    ||'';
+  document.getElementById('st-branch').value  = settData.branch  ||'';
+  document.getElementById('st-hotline').value = settData.hotline ||'';
+  document.getElementById('st-addr').value    = settData.address ||'';
+  document.getElementById('st-fb').value      = settData.facebook||'';
+  // WhatsApp — শুধু নম্বর দেখাও (01XXXXXXXXX ফরম্যাটে)
+  const waStored = settData.whatsapp||'';
+  const urlMatch = waStored.match(/wa\.me\/(\+?[\d]+)/);
+  let waDisp = urlMatch ? urlMatch[1] : waStored.replace(/[^0-9]/g,'');
+  // 8801XXXXXXXXX → 01XXXXXXXXX (সহজ পড়ার জন্য)
+  if(waDisp.startsWith('8801') && waDisp.length===13) waDisp='0'+waDisp.slice(3);
+  document.getElementById('st-wa').value = waDisp || waStored;
+  if(waDisp) setTimeout(()=>previewWaNum(waDisp),100);
+  if(settData.logo){
+    document.getElementById('logoThumb').innerHTML=`<img src="${settData.logo}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">`;
+    settImgs.logo=settData.logo;
+  }
+  if(settData.cover){
+    document.getElementById('coverThumb').innerHTML=`<img src="${settData.cover}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">`;
+    settImgs.cover=settData.cover;
+  }
+}
+
+function listenOrders(){
+  dbRef('orders').on('value', snap=>{
+    const v=snap.val();
+    const prev=allOrders.length;
+    allOrders = v ? Object.entries(v).map(([id,d])=>({id,...d})).sort((a,b)=>b.ts-a.ts) : [];
+    if(prev>0 && allOrders.length>prev){
+      const o=allOrders[0];
+      addNotif(`নতুন অর্ডার: ${o.name} — ৳${o.total}`);
+    }
+    updateStats(); renderOrders(); renderRecent(); renderStatusChart();
+  });
+}
+const DEF_MENU_ITEMS=[
+  {id:'m1',name:'বাসমতি কাচ্চি বিরিয়ানি',cat:'কাচ্চি',desc:'খাঁটি বাসমতি চাল, টেন্ডার মাটন',p1:320,p2:580,p3:820,emoji:'🍛',img:'',active:true},
+  {id:'m2',name:'চিনিগুড়া কাচ্চি',cat:'কাচ্চি',desc:'সুগন্ধি চিনিগুড়া চাল ও তাজা মাটন',p1:280,p2:520,p3:740,emoji:'🍛',img:'',active:true},
+  {id:'m3',name:'চিকেন দম বিরিয়ানি',cat:'চিকেন দম বিরিয়ানি',desc:'সরিষার তেলে রান্না, দম পদ্ধতি',p1:220,p2:400,p3:560,emoji:'🍗',img:'',active:true},
+  {id:'m4',name:'স্পেশাল চিকেন বিরিয়ানি',cat:'চিকেন দম বিরিয়ানি',desc:'অতিরিক্ত মশলা ও রোস্টেড চিকেন',p1:260,p2:460,p3:640,emoji:'🍗',img:'',active:true},
+  {id:'m5',name:'মাটন তেহারি',cat:'মাটন তেহারি',desc:'পুরান ঢাকার ঐতিহ্যবাহী রেসিপি',p1:300,p2:550,p3:780,emoji:'🥘',img:'',active:true},
+  {id:'m6',name:'গরুর তেহারি',cat:'মাটন তেহারি',desc:'তাজা গরুর মাংস, সুগন্ধি মশলা',p1:280,p2:520,p3:730,emoji:'🥘',img:'',active:true},
+  {id:'m7',name:'প্লেইন পোলাও',cat:'প্লেইন পোলাও',desc:'ঘি ও জাফরান সহ সুগন্ধি পোলাও',p1:120,p2:220,p3:300,emoji:'🍚',img:'',active:true},
+  {id:'m8',name:'জালি কাবাব',cat:'সাইড আইটেম',desc:'চারকোলে গ্রিল করা কাবাব',p1:60,p2:110,p3:160,emoji:'🍢',img:'',active:true},
+  {id:'m9',name:'বোরহানি',cat:'সাইড আইটেম',desc:'টক দই, পুদিনা ও মশলার পানীয়',p1:40,p2:75,p3:100,emoji:'🥛',img:'',active:true},
+  {id:'m10',name:'সালাদ',cat:'সাইড আইটেম',desc:'তাজা শসা, টমেটো, পেঁয়াজ',p1:30,p2:55,p3:75,emoji:'🥗',img:'',active:true},
+  {id:'m11',name:'ফিরনি',cat:'ডেজার্ট ও ড্রিংকস',desc:'ঐতিহ্যবাহী মিষ্টি ডেজার্ট',p1:80,p2:150,p3:210,emoji:'🍮',img:'',active:true},
+  {id:'m12',name:'বাদাম শরবত',cat:'ডেজার্ট ও ড্রিংকস',desc:'তাজা বাদাম, দুধ ও চিনির শরবত',p1:60,p2:110,p3:150,emoji:'🥤',img:'',active:true},
+  {id:'m13',name:'পানি (৫০০ মিলি)',cat:'ডেজার্ট ও ড্রিংকস',desc:'মিনারেল ওয়াটার',p1:20,p2:20,p3:20,emoji:'💧',img:'',active:true},
+];
+const DEF_PKGS_ITEMS=[
+  {id:'p1',name:'প্যাকেজ ০১',price:499,emoji:'🌙',items:['বাসমতি কাচ্চি','খেজুর','বাদাম শরবত','ফিরনি','পানি','সালাদ'],img:'',active:true},
+  {id:'p2',name:'প্যাকেজ ০২',price:550,emoji:'⭐',items:['বাসমতি কাচ্চি','চিকেন রোস্ট','খেজুর','বাদাম শরবত','ফিরনি','পানি','সালাদ'],img:'',active:true},
+  {id:'p3',name:'প্যাকেজ ০৩',price:499,emoji:'🍽️',items:['প্লেইন পোলাও','চিকেন রোস্ট','জালি কাবাব','বাদাম শরবত','ফিরনি','পানি','সালাদ'],img:'',active:true},
+  {id:'p4',name:'প্যাকেজ ০৪',price:399,emoji:'🍗',items:['চিকেন দম বিরিয়ানি','জালি কাবাব','খেজুর','বাদাম শরবত','পানি','সালাদ'],img:'',active:true},
+  {id:'p5',name:'প্যাকেজ ০৫',price:499,emoji:'🥘',items:['মাটন তেহারি','জালি কাবাব','খেজুর','বাদাম শরবত','ফিরনি','পানি','সালাদ'],img:'',active:true},
+];
+
+function listenMenu(){
+  dbRef('menu').on('value', snap=>{
+    const v=snap.val();
+    if(v){
+      allMenu = Object.entries(v).map(([id,d])=>({id,...d}));
+    } else {
+      // DB খালি — ডিফল্ট দেখাও, DB-তে সেভ করার অফার দাও
+      allMenu = [];
+    }
+    renderMenuGrid();
+  }, err=>{
+    console.error('Menu listen error:',err);
+    allMenu = [];
+    renderMenuGrid();
+  });
+}
+function listenPkgs(){
+  dbRef('packages').on('value', snap=>{
+    const v=snap.val();
+    if(v){
+      allPkgs = Object.entries(v).map(([id,d])=>({id,...d}));
+    } else {
+      allPkgs = [];
+    }
+    renderPkgGrid();
+  }, err=>{
+    console.error('Pkg listen error:',err);
+    allPkgs = [];
+    renderPkgGrid();
+  });
+}
+function listenZones(){
+  dbRef('zones').on('value', snap=>{
+    const v=snap.val();
+    if(v){
+      allZones = Object.entries(v).map(([id,d])=>({id,...d})).sort((a,b)=>(a.order||99)-(b.order||99));
+    } else {
+      allZones=[...DEF_ZONES];
+      // Write defaults to DB on first load
+      DEF_ZONES.forEach(z=>{ dbRef('zones/'+z.id).set(z).catch(()=>{}); });
+    }
+    renderZones();
+  });
+}
+
+/* ============================================================
+   STATS
+============================================================ */
+function toBn(n){ return String(n).replace(/[0-9]/g,d=>'০১২৩৪৫৬৭৮৯'[d]); }
+function updateStats(){
+  const today=new Date().toDateString();
+  const total=allOrders.length;
+  const tod=allOrders.filter(o=>new Date(o.ts).toDateString()===today).length;
+  const pend=allOrders.filter(o=>o.status==='pending').length;
+  const comp=allOrders.filter(o=>o.status==='completed').length;
+  document.getElementById('sTotal').textContent=toBn(total);
+  document.getElementById('sToday').textContent=toBn(tod);
+  document.getElementById('sPend').textContent=toBn(pend);
+  document.getElementById('sComp').textContent=toBn(comp);
+  const pb=document.getElementById('pendBadge');
+  pb.textContent=pend; pb.style.display=pend>0?'inline':'none';
+}
+function renderRecent(){
+  const el=document.getElementById('recentOList');
+  const items=allOrders.slice(0,5);
+  if(!items.length){ el.innerHTML='<p style="text-align:center;color:var(--txt-l);padding:16px">কোনো অর্ডার নেই</p>'; return; }
+  el.innerHTML=items.map(o=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f5ede0">
+      <div><div style="font-size:.83rem;font-weight:600;color:var(--brown-d)">${o.name}</div>
+      <div style="font-size:.72rem;color:var(--txt-l)">#${o.order_id} · ${fmtTime(o.ts)}</div></div>
+      <div style="text-align:right">
+        <span class="sbadge s-${o.status==='out_for_delivery'?'out':o.status}">${sLabel(o.status)}</span>
+        <div style="font-size:.8rem;font-weight:700;color:var(--gold-d)">৳${o.total}</div>
+      </div>
+    </div>`).join('');
+}
+function renderStatusChart(){
+  const el=document.getElementById('statusChart');
+  const cnt={pending:0,preparing:0,out_for_delivery:0,completed:0,cancelled:0};
+  allOrders.forEach(o=>{ if(cnt[o.status]!==undefined) cnt[o.status]++; });
+  const tot=allOrders.length||1;
+  const items=[
+    {k:'pending',l:'পেন্ডিং',c:'#f59e0b'},{k:'preparing',l:'প্রস্তুত',c:'#3b82f6'},
+    {k:'out_for_delivery',l:'ডেলিভারি',c:'#8b5cf6'},{k:'completed',l:'সম্পন্ন',c:'#22c55e'},
+    {k:'cancelled',l:'বাতিল',c:'#ef4444'}
+  ];
+  el.innerHTML=items.map(it=>`
+    <div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:3px">
+        <span>${it.l}</span><span style="font-weight:700;color:${it.c}">${cnt[it.k]}</span>
+      </div>
+      <div style="height:7px;background:#f0e8d8;border-radius:4px;overflow:hidden">
+        <div style="height:100%;width:${Math.round(cnt[it.k]/tot*100)}%;background:${it.c};border-radius:4px;transition:width .8s"></div>
+      </div>
+    </div>`).join('');
+}
+
+/* ============================================================
+   ORDERS RENDER
+============================================================ */
+function filtOrders(s,btn){
+  oFiltStat=s;
+  document.querySelectorAll('.fbadge').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on'); applyOFilt();
+}
+function applyOFilt(){
+  const q=(document.getElementById('osearch')?.value||'').toLowerCase().trim();
+  let list=allOrders;
+  if(oFiltStat!=='all') list=list.filter(o=>o.status===oFiltStat);
+  if(q) list=list.filter(o=>(o.name||'').toLowerCase().includes(q)||(o.phone||'').includes(q)||(o.order_id||'').toLowerCase().includes(q));
+  renderOrders(list);
+}
+function renderOrders(list){
+  if(!list) list=allOrders;
+  const el=document.getElementById('ordList');
+  if(!list.length){ el.innerHTML='<p style="text-align:center;color:var(--txt-l);padding:30px">কোনো অর্ডার নেই</p>'; return; }
+  el.innerHTML=list.map(o=>`
+    <div class="ocard" id="oc-${o.id}">
+      <div class="oh">
+        <div><div class="oid">#${o.order_id}</div><div class="otime">${fmtTime(o.ts)}</div></div>
+        <span class="sbadge s-${o.status==='out_for_delivery'?'out':o.status}">${sLabel(o.status)}</span>
+      </div>
+      <div class="oinfo">
+        <span><i class="fas fa-user"></i>${o.name}</span>
+        <span><i class="fas fa-phone"></i>${o.phone}</span>
+        <span><i class="fas fa-map-marker-alt"></i>${o.address}</span>
+      </div>
+      ${o.zone_name?`<div class="ozone"><i class="fas fa-motorcycle"></i> ${o.zone_name} — ডেলিভারি চার্জ: ${o.delivery_charge>0?'৳'+o.delivery_charge:'বিনামূল্যে ✅'}</div>`:''}
+      <div class="oitems">
+        ${(o.items||[]).map(i=>`${i.name} (${i.size}) ×${i.qty} = ৳${i.price*i.qty}`).join('<br>')}
+        ${o.note?`<br><em style="color:var(--txt-l)">নোট: ${o.note}</em>`:''}
+      </div>
+      <div class="oprice-row">
+        <span>খাবার: ৳${o.subtotal||o.total}</span>
+        ${o.delivery_charge!=null?`<span>ডেলিভারি: ${o.delivery_charge>0?'৳'+o.delivery_charge:'বিনামূল্যে'}</span>`:''}
+      </div>
+      <div class="oftr">
+        <div class="ototal">সর্বমোট: ৳ ${o.total}</div>
+        <select class="ssel" onchange="updStatus('${o.id}',this.value)" ${['completed','cancelled'].includes(o.status)?'disabled':''}>
+          <option value="pending" ${o.status==='pending'?'selected':''}>⏳ পেন্ডিং</option>
+          <option value="preparing" ${o.status==='preparing'?'selected':''}>👨‍🍳 প্রস্তুত হচ্ছে</option>
+          <option value="out_for_delivery" ${o.status==='out_for_delivery'?'selected':''}>🚴 ডেলিভারিতে</option>
+          <option value="completed" ${o.status==='completed'?'selected':''}>✅ সম্পন্ন</option>
+          <option value="cancelled" ${o.status==='cancelled'?'selected':''}>❌ বাতিল</option>
+        </select>
+      </div>
+    </div>`).join('');
+}
+async function updStatus(id, status){
+  try{ await dbRef('orders/'+id+'/status').set(status); toast(`স্ট্যাটাস আপডেট: ${sLabel(status)}`); }
+  catch(e){ toast('আপডেট ব্যর্থ — অফলাইন?'); }
+}
+
+/* ============================================================
+   DYNAMIC SIZE ROWS
+============================================================ */
+let sizeRows = []; // [{label, price}]
+
+function initSizeRows(sizes){
+  sizeRows = sizes && sizes.length ? [...sizes] : [{label:'১ জনের', price:''},{label:'৩ জনের', price:''},{label:'৫ জনের', price:''}];
+  renderSizeRows();
+}
+
+function renderSizeRows(){
+  const c = document.getElementById('sizeRows');
+  c.innerHTML = sizeRows.map((s,i)=>`
+    <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:7px;margin-bottom:7px;align-items:center">
+      <input type="text" value="${s.label||''}" placeholder="সাইজের নাম (যেমন: ১ জনের)"
+        oninput="sizeRows[${i}].label=this.value"
+        style="border:2px solid #e8d5b0;border-radius:var(--rs);padding:7px 10px;font-family:'Hind Siliguri',sans-serif;font-size:.85rem;outline:none;background:#fdf8f0;width:100%">
+      <input type="number" value="${s.price||''}" placeholder="৳ মূল্য" min="0"
+        oninput="sizeRows[${i}].price=parseInt(this.value)||0"
+        style="border:2px solid #e8d5b0;border-radius:var(--rs);padding:7px 10px;font-family:'Hind Siliguri',sans-serif;font-size:.85rem;outline:none;background:#fdf8f0;width:100%">
+      ${sizeRows.length>1
+        ? `<button type="button" onclick="removeSizeRow(${i})"
+            style="background:#fee2e2;border:none;border-radius:6px;width:32px;height:32px;color:#dc2626;cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <i class="fas fa-times"></i></button>`
+        : `<div style="width:32px"></div>`}
+    </div>`).join('');
+}
+
+function setPreset(labels){
+  // বিদ্যমান দামগুলো রাখো, শুধু label বদলাও
+  const oldPrices = sizeRows.map(r=>r.price||'');
+  sizeRows = labels.map((label,i)=>({
+    label,
+    price: oldPrices[i]||''
+  }));
+  renderSizeRows();
+  toast('সাইজ সেট হয়েছে — এখন দাম দিন');
+}
+
+function addSizeRow(){
+  if(sizeRows.length>=8){ toast('সর্বোচ্চ ৮টি সাইজ যোগ করা যাবে'); return; }
+  sizeRows.push({label:'', price:''});
+  renderSizeRows();
+}
+
+function removeSizeRow(i){
+  if(sizeRows.length<=1) return;
+  sizeRows.splice(i,1);
+  renderSizeRows();
+}
+function renderMenuGrid(){
+  const g=document.getElementById('menuGrid');
+  if(!allMenu.length){
+    // DB খালি — ডিফল্ট দেখাও + ইমপোর্ট বাটন
+    g.innerHTML=`
+      <div style="grid-column:1/-1">
+        <div style="background:#fffbeb;border:2px solid var(--warn);border-radius:var(--r);padding:16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <div>
+            <div style="font-size:.88rem;font-weight:700;color:#92400e"><i class="fas fa-info-circle"></i> DB-তে কোনো মেনু নেই</div>
+            <div style="font-size:.78rem;color:#b45309;margin-top:3px">নিচের ডিফল্ট মেনু DB-তে আমদানি করুন অথবা নতুন আইটেম যোগ করুন</div>
+          </div>
+          <button onclick="importDefaultMenu()" style="background:linear-gradient(135deg,#92400e,#b45309);color:#fff;border:none;border-radius:var(--rs);padding:9px 16px;font-family:'Hind Siliguri',sans-serif;font-size:.85rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;">
+            <i class="fas fa-download"></i> ডিফল্ট মেনু আমদানি করুন
+          </button>
+        </div>
+        <div class="mgrid">${DEF_MENU_ITEMS.map(item=>`
+          <div class="mc" style="opacity:.7">
+            <div class="mc-img">${item.emoji||'🍛'}</div>
+            <div class="mc-body">
+              <div class="mc-name">${item.name}</div>
+              <div class="mc-cat">${item.cat}</div>
+              <div class="mc-price">একক: ৳${item.p1}</div>
+              <div style="font-size:.72rem;color:var(--txt-l);font-style:italic">DB-তে নেই — প্রিভিউ</div>
+            </div>
+          </div>`).join('')}
+        </div>
+      </div>`;
+    return;
+  }
+  g.innerHTML=allMenu.map(item=>`
+    <div class="mc">
+      <div class="mc-img">${item.img?`<img src="${item.img}" alt="${item.name}" onerror="this.parentNode.textContent='${item.emoji||'🍛'}'">`:item.emoji||'🍛'}</div>
+      <div class="mc-body">
+        <div class="mc-name">${item.name}</div>
+        <div class="mc-cat">${item.cat||''}</div>
+        <div class="mc-price">${item.sizes&&item.sizes.length ? item.sizes.map(s=>`${s.label}: ৳${s.price}`).join(' · ') : `১ জনের: ৳${item.p1||0}`}</div>
+        <div class="mc-acts">
+          <button class="ebtn" onclick="editMenuItem('${item.id}')"><i class="fas fa-edit"></i> সম্পাদনা</button>
+          <button class="dbtn" onclick="delMenuItem('${item.id}')"><i class="fas fa-trash"></i></button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+async function importDefaultMenu(){
+  const btn=event.target.closest('button');
+  btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> আমদানি হচ্ছে...';
+  try{
+    const batch={};
+    DEF_MENU_ITEMS.forEach(item=>{ batch[item.id]={...item,creAt:Date.now(),updAt:Date.now()}; });
+    await dbRef('menu').set(batch);
+    toast('✅ ডিফল্ট মেনু DB-তে আমদানি হয়েছে!');
+  } catch(e){
+    toast('আমদানি ব্যর্থ: '+e.message);
+    btn.disabled=false; btn.innerHTML='<i class="fas fa-download"></i> ডিফল্ট মেনু আমদানি করুন';
+  }
+}
+function openMenuMod(){
+  document.getElementById('meditId').value='';
+  ['m-name','m-desc','m-emoji'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('m-cat').value='';
+  document.getElementById('m-img-prev').style.display='none';
+  document.getElementById('menuMTitle').textContent='নতুন মেনু আইটেম';
+  menuImgData='';
+  initSizeRows([{label:'১ জনের',price:''},{label:'৩ জনের',price:''},{label:'৫ জনের',price:''}]);
+  document.getElementById('menuMOvl').classList.add('on');
+  document.getElementById('menuMBox').classList.add('on');
+}
+function closeMenuMod(){ document.getElementById('menuMOvl').classList.remove('on'); document.getElementById('menuMBox').classList.remove('on'); }
+function editMenuItem(id){
+  const item=allMenu.find(i=>i.id===id); if(!item) return;
+  document.getElementById('meditId').value=id;
+  document.getElementById('m-name').value=item.name||'';
+  document.getElementById('m-cat').value=item.cat||'';
+  document.getElementById('m-desc').value=item.desc||'';
+  document.getElementById('m-emoji').value=item.emoji||'';
+  menuImgData=item.img||'';
+  const prev=document.getElementById('m-img-prev');
+  if(item.img){ prev.src=item.img; prev.style.display='block'; } else { prev.style.display='none'; }
+  document.getElementById('menuMTitle').textContent='আইটেম সম্পাদনা';
+  // sizes নতুন ফরম্যাট অথবা পুরনো p1/p2/p3 থেকে কনভার্ট
+  let sizes = [];
+  if(item.sizes && item.sizes.length){
+    sizes = item.sizes;
+  } else {
+    // পুরনো p1/p2/p3 ফরম্যাট থেকে কনভার্ট
+    if(item.p1) sizes.push({label:'১ জনের', price:item.p1});
+    if(item.p2) sizes.push({label:'৩ জনের', price:item.p2});
+    if(item.p3) sizes.push({label:'৫ জনের', price:item.p3});
+    if(!sizes.length) sizes = [{label:'১ জনের',price:''},{label:'৩ জনের',price:''},{label:'৫ জনের',price:''}];
+  }
+  initSizeRows(sizes);
+  document.getElementById('menuMOvl').classList.add('on');
+  document.getElementById('menuMBox').classList.add('on');
+}
+function previewMenuImg(inp){
+  const f=inp.files[0]; if(!f) return;
+  if(f.size>250*1024){ toast('ছবি ২৫০KB এর বেশি হবে না!'); inp.value=''; return; }
+  const r=new FileReader();
+  r.onload=e=>{ menuImgData=e.target.result; const p=document.getElementById('m-img-prev'); p.src=menuImgData; p.style.display='block'; };
+  r.readAsDataURL(f);
+}
+async function saveMenuItem(){
+  const name=document.getElementById('m-name').value.trim();
+  const cat=document.getElementById('m-cat').value;
+  if(!name||!cat){ toast('নাম ও ক্যাটাগরি আবশ্যক!'); return; }
+  // sizeRows থেকে valid sizes বের করো
+  const validSizes = sizeRows.filter(s=>s.label && s.price>0);
+  if(!validSizes.length){ toast('অন্তত একটি সাইজ ও মূল্য দিন!'); return; }
+  const btn=document.getElementById('menuSaveBtn');
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span> সংরক্ষণ হচ্ছে...';
+  const editId=document.getElementById('meditId').value;
+  const data={
+    name, cat,
+    desc:document.getElementById('m-desc').value.trim(),
+    sizes: validSizes.map(s=>({label:s.label.trim(), price:parseInt(s.price)||0})),
+    // পুরনো ফরম্যাটও রাখো (backward compatibility)
+    p1: validSizes[0]?parseInt(validSizes[0].price)||0:0,
+    p2: validSizes[1]?parseInt(validSizes[1].price)||0:0,
+    p3: validSizes[2]?parseInt(validSizes[2].price)||0:0,
+    emoji:document.getElementById('m-emoji').value.trim()||'🍛',
+    img:menuImgData||'',
+    active:true, updAt:Date.now()
+  };
+  try{
+    if(editId){ await dbRef('menu/'+editId).update(data); }
+    else { await dbRef('menu').push({...data,creAt:Date.now()}); }
+    closeMenuMod(); toast('✅ আইটেম সংরক্ষিত হয়েছে!');
+  } catch(e){
+    if(e.code==='PERMISSION_DENIED'){ toast('❌ অনুমতি নেই — সেটিংস পেজে Firebase Rules দেখুন'); }
+    else { toast('❌ সংরক্ষণ ব্যর্থ: '+e.message); }
+  }
+  btn.disabled=false; btn.innerHTML='<i class="fas fa-save"></i> সংরক্ষণ করুন';
+}
+async function delMenuItem(id){
+  if(!confirm('এই আইটেমটি মুছে ফেলবেন?')) return;
+  try{ await dbRef('menu/'+id).remove(); toast('আইটেম মুছে গেছে'); }
+  catch(e){ toast('মুছতে ব্যর্থ'); }
+}
+
+/* ============================================================
+   PACKAGE MANAGEMENT
+============================================================ */
+function renderPkgGrid(){
+  const g=document.getElementById('pkgGrid');
+  if(!allPkgs.length){
+    g.innerHTML=`
+      <div style="grid-column:1/-1">
+        <div style="background:#fffbeb;border:2px solid var(--warn);border-radius:var(--r);padding:16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <div>
+            <div style="font-size:.88rem;font-weight:700;color:#92400e"><i class="fas fa-info-circle"></i> DB-তে কোনো প্যাকেজ নেই</div>
+            <div style="font-size:.78rem;color:#b45309;margin-top:3px">ডিফল্ট প্যাকেজ আমদানি করুন বা নতুন তৈরি করুন</div>
+          </div>
+          <button onclick="importDefaultPkgs()" style="background:linear-gradient(135deg,#92400e,#b45309);color:#fff;border:none;border-radius:var(--rs);padding:9px 16px;font-family:'Hind Siliguri',sans-serif;font-size:.85rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;">
+            <i class="fas fa-download"></i> ডিফল্ট প্যাকেজ আমদানি করুন
+          </button>
+        </div>
+        <div class="mgrid">${DEF_PKGS_ITEMS.map(pkg=>`
+          <div class="mc" style="opacity:.7">
+            <div class="mc-img">${pkg.emoji||'🌙'}</div>
+            <div class="mc-body">
+              <div class="mc-name">${pkg.name}</div>
+              <div class="mc-cat">${(pkg.items||[]).slice(0,2).join(', ')}...</div>
+              <div class="mc-price">৳ ${pkg.price}</div>
+              <div style="font-size:.72rem;color:var(--txt-l);font-style:italic">DB-তে নেই — প্রিভিউ</div>
+            </div>
+          </div>`).join('')}
+        </div>
+      </div>`;
+    return;
+  }
+  g.innerHTML=allPkgs.map(pkg=>`
+    <div class="mc">
+      <div class="mc-img">${pkg.img?`<img src="${pkg.img}" alt="${pkg.name}" onerror="this.parentNode.textContent='${pkg.emoji||'🌙'}'">`:pkg.emoji||'🌙'}</div>
+      <div class="mc-body">
+        <div class="mc-name">${pkg.name}</div>
+        <div class="mc-cat">${(pkg.items||[]).slice(0,2).join(', ')}...</div>
+        <div class="mc-price">৳ ${pkg.price}</div>
+        <div class="mc-acts">
+          <button class="ebtn" onclick="editPkg('${pkg.id}')"><i class="fas fa-edit"></i> সম্পাদনা</button>
+          <button class="dbtn" onclick="delPkg('${pkg.id}')"><i class="fas fa-trash"></i></button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+async function importDefaultPkgs(){
+  const btn=event.target.closest('button');
+  btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> আমদানি হচ্ছে...';
+  try{
+    const batch={};
+    DEF_PKGS_ITEMS.forEach(p=>{ batch[p.id]={...p,creAt:Date.now(),updAt:Date.now()}; });
+    await dbRef('packages').set(batch);
+    toast('✅ ডিফল্ট প্যাকেজ DB-তে আমদানি হয়েছে!');
+  } catch(e){
+    toast('আমদানি ব্যর্থ: '+e.message);
+    btn.disabled=false; btn.innerHTML='<i class="fas fa-download"></i> ডিফল্ট প্যাকেজ আমদানি করুন';
+  }
+}
+let pkgImgData2='';
+function openPkgMod(){
+  curPItems=[];
+  document.getElementById('peditId').value='';
+  ['p-name','p-emoji'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('p-price').value='';
+  document.getElementById('pitemTags').innerHTML='';
+  document.getElementById('p-img-prev').style.display='none';
+  document.getElementById('pkgMTitle').textContent='নতুন প্যাকেজ';
+  pkgImgData2='';
+  document.getElementById('pkgMOvl').classList.add('on');
+  document.getElementById('pkgMBox').classList.add('on');
+}
+function closePkgMod(){ document.getElementById('pkgMOvl').classList.remove('on'); document.getElementById('pkgMBox').classList.remove('on'); }
+function editPkg(id){
+  const pkg=allPkgs.find(p=>p.id===id); if(!pkg) return;
+  curPItems=[...(pkg.items||[])];
+  document.getElementById('peditId').value=id;
+  document.getElementById('p-name').value=pkg.name||'';
+  document.getElementById('p-price').value=pkg.price||'';
+  document.getElementById('p-emoji').value=pkg.emoji||'';
+  pkgImgData2=pkg.img||'';
+  renderPItems();
+  const prev=document.getElementById('p-img-prev');
+  if(pkg.img){ prev.src=pkg.img; prev.style.display='block'; } else { prev.style.display='none'; }
+  document.getElementById('pkgMTitle').textContent='প্যাকেজ সম্পাদনা';
+  document.getElementById('pkgMOvl').classList.add('on');
+  document.getElementById('pkgMBox').classList.add('on');
+}
+function addPItem(){ const v=document.getElementById('p-item-inp').value.trim(); if(!v) return; curPItems.push(v); document.getElementById('p-item-inp').value=''; renderPItems(); }
+function remPItem(i){ curPItems.splice(i,1); renderPItems(); }
+function renderPItems(){ document.getElementById('pitemTags').innerHTML=curPItems.map((it,i)=>`<span class="pitag">${it}<button class="pitag-rm" onclick="remPItem(${i})">×</button></span>`).join(''); }
+function previewPkgImg(inp){
+  const f=inp.files[0]; if(!f) return;
+  if(f.size>250*1024){ toast('ছবি ২৫০KB এর বেশি হবে না!'); inp.value=''; return; }
+  const r=new FileReader();
+  r.onload=e=>{ pkgImgData2=e.target.result; const p=document.getElementById('p-img-prev'); p.src=pkgImgData2; p.style.display='block'; };
+  r.readAsDataURL(f);
+}
+async function savePackage(){
+  const name=document.getElementById('p-name').value.trim();
+  const price=parseInt(document.getElementById('p-price').value);
+  if(!name||!price){ toast('নাম ও মূল্য আবশ্যক!'); return; }
+  const btn=document.getElementById('pkgSaveBtn');
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span> সংরক্ষণ হচ্ছে...';
+  const editId=document.getElementById('peditId').value;
+  const data={name,price,emoji:document.getElementById('p-emoji').value.trim()||'🌙',items:curPItems,img:pkgImgData2||'',active:true,updAt:Date.now()};
+  try{
+    if(editId){ await dbRef('packages/'+editId).update(data); }
+    else { await dbRef('packages').push({...data,creAt:Date.now()}); }
+    closePkgMod(); toast('প্যাকেজ সংরক্ষিত হয়েছে ✓');
+  } catch(e){ toast('সংরক্ষণ ব্যর্থ: '+e.message); }
+  btn.disabled=false; btn.innerHTML='<i class="fas fa-save"></i> সংরক্ষণ করুন';
+}
+async function delPkg(id){
+  if(!confirm('এই প্যাকেজটি মুছে ফেলবেন?')) return;
+  try{ await dbRef('packages/'+id).remove(); toast('প্যাকেজ মুছে গেছে'); }
+  catch(e){ toast('মুছতে ব্যর্থ'); }
+}
+
+/* ============================================================
+   DELIVERY ZONE MANAGEMENT
+============================================================ */
+function renderZones(){
+  const g=document.getElementById('zoneGrid');
+  const sr=document.getElementById('zoneStatRow');
+  if(!allZones.length){ g.innerHTML='<p style="grid-column:1/-1;text-align:center;color:var(--txt-l);padding:20px">কোনো এলাকা নেই</p>'; return; }
+  // Stats
+  const free=allZones.filter(z=>z.charge===0).length;
+  const avg=Math.round(allZones.filter(z=>z.charge>0).reduce((s,z)=>s+z.charge,0)/(allZones.filter(z=>z.charge>0).length||1));
+  sr.innerHTML=`
+    <div class="zone-stat">মোট এলাকা<span>${toBn(allZones.length)}</span></div>
+    <div class="zone-stat">বিনামূল্যে<span>${toBn(free)}</span></div>
+    <div class="zone-stat">গড় চার্জ<span>৳${avg}</span></div>`;
+  // Cards
+  g.innerHTML=allZones.map(z=>`
+    <div class="zcard">
+      <div class="zcard-head">
+        <div class="zcard-name"><i class="fas fa-map-marker-alt" style="color:var(--gold);margin-right:5px"></i>${z.name}</div>
+        <span class="zcharge ${z.charge===0?'free':''}">${z.charge===0?'বিনামূল্যে':'৳'+z.charge}</span>
+      </div>
+      <div class="znote">${z.note||''}</div>
+      <div class="zcard-acts">
+        <button class="ebtn" onclick="editZone('${z.id}')"><i class="fas fa-edit"></i> সম্পাদনা</button>
+        <button class="dbtn" onclick="delZone('${z.id}')"><i class="fas fa-trash"></i> মুছুন</button>
+      </div>
+    </div>`).join('');
+}
+function openZoneMod(){
+  document.getElementById('zeditId').value='';
+  document.getElementById('z-name').value='';
+  document.getElementById('z-charge').value='';
+  document.getElementById('z-note').value='';
+  document.getElementById('z-order').value='';
+  document.getElementById('zPreview').textContent='—';
+  document.getElementById('zoneMTitle').textContent='নতুন ডেলিভারি এলাকা';
+  document.getElementById('zoneMOvl').classList.add('on');
+  document.getElementById('zoneMBox').classList.add('on');
+  // Live preview
+  ['z-name','z-charge'].forEach(id=>{
+    document.getElementById(id).addEventListener('input', updateZPreview);
+  });
+}
+function updateZPreview(){
+  const name=document.getElementById('z-name').value.trim()||'—';
+  const charge=parseInt(document.getElementById('z-charge').value)||0;
+  document.getElementById('zPreview').innerHTML = charge===0
+    ? `<strong>${name}</strong> — বিনামূল্যে ডেলিভারি ✅`
+    : `<strong>${name}</strong> — ডেলিভারি চার্জ: ৳${charge}`;
+}
+function closeZoneMod(){ document.getElementById('zoneMOvl').classList.remove('on'); document.getElementById('zoneMBox').classList.remove('on'); }
+function editZone(id){
+  const z=allZones.find(z=>z.id===id); if(!z) return;
+  document.getElementById('zeditId').value=id;
+  document.getElementById('z-name').value=z.name||'';
+  document.getElementById('z-charge').value=z.charge||0;
+  document.getElementById('z-note').value=z.note||'';
+  document.getElementById('z-order').value=z.order||1;
+  document.getElementById('zoneMTitle').textContent='এলাকা সম্পাদনা';
+  updateZPreview();
+  document.getElementById('zoneMOvl').classList.add('on');
+  document.getElementById('zoneMBox').classList.add('on');
+}
+async function saveZone(){
+  const name=document.getElementById('z-name').value.trim();
+  const charge=parseInt(document.getElementById('z-charge').value)||0;
+  if(!name){ toast('এলাকার নাম দিন!'); return; }
+  const btn=document.getElementById('zoneSaveBtn');
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span> সংরক্ষণ হচ্ছে...';
+  const editId=document.getElementById('zeditId').value;
+  const autoNote = charge===0 ? `${name}: বিনামূল্যে ডেলিভারি` : `${name}: ৳${charge} ডেলিভারি চার্জ`;
+  const data={
+    name, charge,
+    note:document.getElementById('z-note').value.trim()||autoNote,
+    order:parseInt(document.getElementById('z-order').value)||99,
+    active:true, updAt:Date.now()
+  };
+  try{
+    if(editId){ await dbRef('zones/'+editId).update(data); }
+    else { await dbRef('zones').push({...data,creAt:Date.now()}); }
+    closeZoneMod(); toast('এলাকা সংরক্ষিত হয়েছে ✓');
+  } catch(e){ toast('সংরক্ষণ ব্যর্থ: '+e.message); }
+  btn.disabled=false; btn.innerHTML='<i class="fas fa-save"></i> এলাকা সংরক্ষণ করুন';
+}
+async function delZone(id){
+  if(!confirm('এই এলাকাটি মুছে ফেলবেন?')) return;
+  try{ await dbRef('zones/'+id).remove(); toast('এলাকা মুছে গেছে'); }
+  catch(e){ toast('মুছতে ব্যর্থ'); }
+}
+
+/* ============================================================
+   SETTINGS SAVE
+============================================================ */
+function handleImg(inp,type){
+  const f=inp.files[0]; if(!f) return;
+  // Show filename
+  const fnEl=document.getElementById(type==='logo'?'logoFileName':'coverFileName');
+  if(fnEl) fnEl.textContent=f.name+' ('+Math.round(f.size/1024)+'KB)';
+  if(f.size>450*1024){
+    toast(`ছবি ৪৫০KB এর বেশি হবে না! আপনার ছবি: ${Math.round(f.size/1024)}KB — tinypng.com দিয়ে ছোট করুন`);
+    inp.value='';
+    if(fnEl) fnEl.textContent='ফাইল খুব বড় — tinypng.com দিয়ে compress করুন';
+    return;
+  }
+  const r=new FileReader();
+  r.onload=e=>{
+    settImgs[type]=e.target.result;
+    const el=document.getElementById(type==='logo'?'logoThumb':'coverThumb');
+    el.innerHTML=`<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">`;
+    if(fnEl) fnEl.textContent='✅ '+f.name+' — প্রস্তুত (সেটিংস সেভ করুন)';
+    toast(`${type==='logo'?'লোগো':'কভার'} প্রস্তুত — এখন সেটিংস সেভ করুন`);
+  };
+  r.onerror=()=>{ toast('ছবি পড়তে সমস্যা হয়েছে'); };
+  r.readAsDataURL(f);
+}
+function normalizeWaNum(raw){
+  // যদি পুরো wa.me URL থাকে
+  const urlMatch = (raw||'').match(/wa\.me\/(\+?[\d]+)/);
+  if(urlMatch){ raw = urlMatch[1]; }
+  let num = raw.replace(/[^0-9]/g,'');
+  if(!num) return '';
+  // 880 দিয়ে শুরু ও ১৩ digit = সঠিক
+  if(num.startsWith('8801') && num.length===13) return num;
+  // 01 দিয়ে শুরু ও ১১ digit (সবচেয়ে কমন)
+  if(num.startsWith('01') && num.length===11) return '880'+num.slice(1);
+  // 0 দিয়ে শুরু ও ১১ digit
+  if(num.startsWith('0') && num.length===11) return '880'+num.slice(1);
+  // 1 দিয়ে শুরু ও ১০ digit
+  if(num.startsWith('1') && num.length===10) return '880'+num;
+  // 880 আছে কিন্তু ১৩ digit নয়
+  if(num.startsWith('880')) return num;
+  return num;
+}
+function previewWaNum(val){
+  const prev=document.getElementById('waNumPreview');
+  const show=document.getElementById('waNumShow');
+  const num=normalizeWaNum(val);
+  if(num.length>=10){
+    prev.style.display='block';
+    show.textContent=`https://wa.me/${num}`;
+  } else {
+    prev.style.display='none';
+  }
+}
+
+async function saveSettings(){
+  const btn=document.getElementById('settSaveBtn');
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span> সংরক্ষণ হচ্ছে...';
+  // Check if user is logged in
+  const user=auth.currentUser;
+  if(!user){
+    toast('❌ লগইন করুন — সেশন শেষ হয়ে গেছে');
+    btn.disabled=false; btn.innerHTML='<i class="fas fa-save"></i> সেটিংস সংরক্ষণ করুন';
+    return;
+  }
+  // WhatsApp নম্বর normalize করো
+  let waRaw = document.getElementById('st-wa').value.trim();
+  const waNum = normalizeWaNum(waRaw);
+  const waFinal = waNum.length>=10 ? `https://wa.me/${waNum}` : waRaw;
+
+  const data={
+    name:document.getElementById('st-name').value.trim()||'কাচ্চি ডাইন',
+    branch:document.getElementById('st-branch').value.trim()||'মানিকগঞ্জ শাখা',
+    hotline:document.getElementById('st-hotline').value.trim(),
+    address:document.getElementById('st-addr').value.trim(),
+    facebook:document.getElementById('st-fb').value.trim(),
+    whatsapp:waFinal,
+    logo:settImgs.logo||settData.logo||'',
+    cover:settImgs.cover||settData.cover||'',
+    updAt:Date.now()
+  };
+  try{
+    await dbRef('settings').set(data);
+    settData={...data};
+    toast('✅ সেটিংস সংরক্ষিত হয়েছে!');
+  } catch(e){
+    console.error('Settings save error:',e);
+    if(e.code==='PERMISSION_DENIED'){
+      toast('❌ অনুমতি নেই — নিচের Rules আপডেট করুন (সাহায্যের জন্য নিচে দেখুন)');
+      // Show rules help
+      showRulesHelper();
+    } else {
+      toast('❌ সংরক্ষণ ব্যর্থ: '+e.message);
+    }
+  }
+  btn.disabled=false; btn.innerHTML='<i class="fas fa-save"></i> সেটিংস সংরক্ষণ করুন';
+}
+
+function showRulesHelper(){
+  const existing=document.getElementById('rulesHelper');
+  if(existing){ existing.style.display='block'; existing.scrollIntoView({behavior:'smooth'}); return; }
+  const div=document.createElement('div');
+  div.id='rulesHelper';
+  div.style.cssText='background:#fee2e2;border:2px solid #fca5a5;border-radius:var(--r);padding:16px;margin-top:14px;';
+  div.innerHTML=`
+    <div style="font-family:'Noto Serif Bengali',serif;font-size:1rem;font-weight:800;color:#dc2626;margin-bottom:10px">
+      🔴 Firebase Rules ঠিক করুন
+    </div>
+    <p style="font-size:.82rem;color:#991b1b;margin-bottom:10px;line-height:1.6">
+      Firebase Console → Realtime Database → Rules → নিচের কোড পেস্ট করুন → Publish
+    </p>
+    <pre style="background:#1e1e1e;color:#4ade80;padding:14px;border-radius:8px;font-size:.75rem;overflow-x:auto;white-space:pre;line-height:1.7">{
+  "rules": {
+    "settings": {
+      ".read": true,
+      ".write": "auth != null"
+    },
+    "menu": {
+      ".read": true,
+      ".write": "auth != null"
+    },
+    "packages": {
+      ".read": true,
+      ".write": "auth != null"
+    },
+    "orders": {
+      ".read": "auth != null",
+      ".write": true
+    },
+    "zones": {
+      ".read": true,
+      ".write": "auth != null"
+    }
+  }
+}</pre>
+    <button onclick="document.getElementById('rulesHelper').style.display='none'"
+      style="margin-top:10px;background:#dc2626;color:#fff;border:none;border-radius:6px;padding:7px 14px;cursor:pointer;font-family:'Hind Siliguri',sans-serif;font-size:.82rem;font-weight:600">
+      বন্ধ করুন
+    </button>
+  `;
+  document.getElementById('pg-settings').appendChild(div);
+  div.scrollIntoView({behavior:'smooth'});
+}
+
+/* ============================================================
+   NOTIFICATIONS
+============================================================ */
+function addNotif(msg){
+  notifs.unshift({msg,ts:Date.now(),read:false});
+  renderNotifs(); toast('🔔 '+msg);
+}
+function renderNotifs(){
+  const list=document.getElementById('ndropList');
+  const dot=document.getElementById('ndot');
+  const unr=notifs.filter(n=>!n.read).length;
+  dot.style.display=unr>0?'block':'none';
+  if(!notifs.length){ list.innerHTML='<div class="ndrop-empty">কোনো নোটিফিকেশন নেই</div>'; return; }
+  list.innerHTML=notifs.map((n,i)=>`
+    <div class="ni2 ${n.read?'':'unr'}" onclick="markRead(${i})">
+      <div class="nidot" style="${n.read?'opacity:0':''}"></div>
+      <div><div class="ni2-txt">${n.msg}</div><div class="ni2-time">${fmtTime(n.ts)}</div></div>
+    </div>`).join('');
+}
+function markRead(i){ notifs[i].read=true; renderNotifs(); }
+function clearNotifs(){ notifs.forEach(n=>n.read=true); renderNotifs(); }
+function toggleNdrop(){ document.getElementById('ndrop').classList.toggle('on'); }
+document.addEventListener('click', e=>{ if(!e.target.closest('.notif-btn')&&!e.target.closest('#ndrop')) document.getElementById('ndrop').classList.remove('on'); });
+
+/* ============================================================
+   PASSWORD CHANGE
+============================================================ */
+function initPasswordPage(){
+  const user = auth.currentUser;
+  if(!user) return;
+  const em = user.email||'';
+  document.getElementById('pwUserEmail').textContent = em;
+  document.getElementById('pwResetEmail').textContent = '📧 '+em;
+  // ফর্ম পরিষ্কার করো
+  ['pw-current','pw-new','pw-confirm'].forEach(id=>{
+    document.getElementById(id).value='';
+  });
+  document.getElementById('pwStrBar').style.width='0%';
+  document.getElementById('pwStrText').textContent='';
+  document.getElementById('pwMatchText').style.display='none';
+  document.getElementById('pwSuccess').style.display='none';
+}
+
+function togglePw(inputId, iconId){
+  const inp = document.getElementById(inputId);
+  const ico = document.getElementById(iconId);
+  if(inp.type==='password'){
+    inp.type='text';
+    ico.className='fas fa-eye-slash';
+  } else {
+    inp.type='password';
+    ico.className='fas fa-eye';
+  }
+}
+
+function checkPwStrength(){
+  const pw = document.getElementById('pw-new').value;
+  const bar = document.getElementById('pwStrBar');
+  const txt = document.getElementById('pwStrText');
+  let score = 0;
+  if(pw.length >= 6)  score++;
+  if(pw.length >= 10) score++;
+  if(/[A-Z]/.test(pw)) score++;
+  if(/[0-9]/.test(pw)) score++;
+  if(/[^A-Za-z0-9]/.test(pw)) score++;
+  const levels = [
+    {w:'0%',  c:'transparent', t:''},
+    {w:'25%', c:'#ef4444',     t:'😟 দুর্বল পাসওয়ার্ড'},
+    {w:'50%', c:'#f59e0b',     t:'😐 মাঝারি পাসওয়ার্ড'},
+    {w:'75%', c:'#3b82f6',     t:'🙂 ভালো পাসওয়ার্ড'},
+    {w:'90%', c:'#22c55e',     t:'😎 শক্তিশালী পাসওয়ার্ড'},
+    {w:'100%',c:'#16a34a',     t:'🔒 অত্যন্ত শক্তিশালী!'},
+  ];
+  const l = levels[Math.min(score, 5)];
+  bar.style.width = l.w;
+  bar.style.background = l.c;
+  txt.textContent = l.t;
+  txt.style.color = l.c;
+  // confirm মিলছে কিনা চেক করো
+  checkPwMatch();
+}
+
+function checkPwMatch(){
+  const nw  = document.getElementById('pw-new').value;
+  const con = document.getElementById('pw-confirm').value;
+  const el  = document.getElementById('pwMatchText');
+  if(!con){ el.style.display='none'; return; }
+  el.style.display='block';
+  if(nw===con){
+    el.textContent='✅ পাসওয়ার্ড মিলেছে';
+    el.style.color='#16a34a';
+  } else {
+    el.textContent='❌ পাসওয়ার্ড মিলছে না';
+    el.style.color='#dc2626';
+  }
+}
+
+async function changePassword(){
+  const current = document.getElementById('pw-current').value;
+  const newPw   = document.getElementById('pw-new').value;
+  const confirm = document.getElementById('pw-confirm').value;
+
+  // Validation
+  if(!current){ toast('❌ বর্তমান পাসওয়ার্ড দিন'); document.getElementById('pw-current').focus(); return; }
+  if(!newPw)  { toast('❌ নতুন পাসওয়ার্ড দিন');   document.getElementById('pw-new').focus(); return; }
+  if(newPw.length < 6){ toast('❌ পাসওয়ার্ড কমপক্ষে ৬ অক্ষর হতে হবে'); return; }
+  if(newPw !== confirm){ toast('❌ নতুন পাসওয়ার্ড দুটো মিলছে না'); document.getElementById('pw-confirm').focus(); return; }
+  if(current === newPw){ toast('⚠️ নতুন পাসওয়ার্ড পুরোনোটার মতো হওয়া যাবে না'); return; }
+
+  const btn = document.getElementById('pwChangeBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span> পরিবর্তন হচ্ছে...';
+
+  const user = auth.currentUser;
+  if(!user){ toast('❌ সেশন শেষ — আবার লগইন করুন'); btn.disabled=false; btn.innerHTML='<i class="fas fa-lock"></i> পাসওয়ার্ড পরিবর্তন করুন'; return; }
+
+  try{
+    // Re-authenticate first (বর্তমান পাসওয়ার্ড যাচাই)
+    const cred = firebase.auth.EmailAuthProvider.credential(user.email, current);
+    await user.reauthenticateWithCredential(cred);
+
+    // Now update password
+    await user.updatePassword(newPw);
+
+    // Success!
+    document.getElementById('pwSuccess').style.display='block';
+    document.getElementById('pwSuccess').scrollIntoView({behavior:'smooth'});
+    ['pw-current','pw-new','pw-confirm'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('pwStrBar').style.width='0%';
+    document.getElementById('pwStrText').textContent='';
+    document.getElementById('pwMatchText').style.display='none';
+    toast('✅ পাসওয়ার্ড সফলভাবে পরিবর্তিত হয়েছে!');
+
+  } catch(e){
+    console.error('Password change error:',e);
+    if(e.code==='auth/wrong-password' || e.code==='auth/invalid-credential'){
+      toast('❌ বর্তমান পাসওয়ার্ড ভুল!');
+      document.getElementById('pw-current').focus();
+      document.getElementById('pw-current').style.borderColor='#dc2626';
+      setTimeout(()=>document.getElementById('pw-current').style.borderColor='',2000);
+    } else if(e.code==='auth/weak-password'){
+      toast('❌ পাসওয়ার্ড খুব দুর্বল — আরও শক্তিশালী পাসওয়ার্ড দিন');
+    } else if(e.code==='auth/requires-recent-login'){
+      toast('❌ নিরাপত্তার জন্য আবার লগআউট করে লগইন করুন');
+    } else {
+      toast('❌ পরিবর্তন ব্যর্থ: '+e.message);
+    }
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '<i class="fas fa-lock"></i> পাসওয়ার্ড পরিবর্তন করুন';
+}
+
+async function sendResetEmail(){
+  const user = auth.currentUser;
+  if(!user){ toast('লগইন করুন'); return; }
+  const msgEl = document.getElementById('resetMsg');
+  try{
+    await auth.sendPasswordResetEmail(user.email);
+    msgEl.style.display='block';
+    msgEl.style.background='#f0fdf4';
+    msgEl.style.border='1px solid #86efac';
+    msgEl.style.color='#15803d';
+    msgEl.innerHTML=`✅ রিসেট ইমেইল পাঠানো হয়েছে:<br><strong>${user.email}</strong><br><small>ইমেইল চেক করুন (Spam folder-ও দেখুন)</small>`;
+    toast('✅ রিসেট ইমেইল পাঠানো হয়েছে!');
+  } catch(e){
+    msgEl.style.display='block';
+    msgEl.style.background='#fee2e2';
+    msgEl.style.border='1px solid #fca5a5';
+    msgEl.style.color='#dc2626';
+    msgEl.textContent='❌ ইমেইল পাঠানো ব্যর্থ: '+e.message;
+  }
+}
+
+/* ============================================================
+   NAVIGATION — updated to handle password page
+============================================================ */
+function goPage(pg,navEl){
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
+  document.getElementById('pg-'+pg).classList.add('on');
+  if(navEl) navEl.classList.add('on');
+  const titles={dashboard:'ড্যাশবোর্ড',orders:'অর্ডার ম্যানেজমেন্ট',menu:'মেনু আইটেম',packages:'রমজান প্যাকেজ',zones:'ডেলিভারি জোন',settings:'রেস্টুরেন্ট সেটিংস',password:'পাসওয়ার্ড পরিবর্তন'};
+  document.getElementById('pageTitle').textContent=titles[pg]||'';
+  if(pg==='password') initPasswordPage();
+  closeSb();
+}
+function toggleSb(){ document.getElementById('sb').classList.toggle('mopen'); document.getElementById('sbOvl').classList.toggle('on'); }
+function closeSb(){ document.getElementById('sb').classList.remove('mopen'); document.getElementById('sbOvl').classList.remove('on'); }
+
+function openBranchMaker(){
+  const cur = window.location.href;
+  const url = cur.replace(/admin\.html(\?.*)?$/, 'branch-maker.html');
+  window.open(url, '_blank');
+  closeSb();
+}
+function openCustomerSite(){
+  // যেকোনো domain এ কাজ করবে — GitHub Pages, localhost সব জায়গায়
+  const cur = window.location.href;
+  // admin.html → index.html
+  let url = cur.replace(/admin\.html(\?.*)?$/, 'index.html');
+  // যদি admin.html না থাকে তাহলে শেষে index.html যোগ করো
+  if(url === cur) url = window.location.origin + window.location.pathname.replace(/[^/]*$/, '') + 'index.html';
+  window.open(url, '_blank');
+  closeSb();
+}
+
+/* ============================================================
+   UTILS
+============================================================ */
+function sLabel(s){ return {pending:'⏳ পেন্ডিং',preparing:'👨‍🍳 প্রস্তুত',out_for_delivery:'🚴 ডেলিভারিতে',completed:'✅ সম্পন্ন',cancelled:'❌ বাতিল'}[s]||s; }
+function fmtTime(ts){
+  if(!ts) return '';
+  const d=new Date(typeof ts==='string'?ts:ts);
+  const diff=Math.floor((Date.now()-d)/60000);
+  if(diff<1) return 'এইমাত্র';
+  if(diff<60) return `${diff} মিনিট আগে`;
+  if(diff<1440) return `${Math.floor(diff/60)} ঘণ্টা আগে`;
+  return d.toLocaleDateString('bn-BD');
+}
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('on');
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('on'),2600);
+}
+
+/* MODAL OVERLAY CLICK */
+['menuMOvl','pkgMOvl','zoneMOvl'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',function(e){ if(e.target===this){ this.classList.remove('on'); this.querySelector('.mbox').classList.remove('on'); } });
+});
+
+/* ============================================================
+   BRANCH SWITCHER
+============================================================ */
+let branches = JSON.parse(localStorage.getItem('kd_branches') || 'null') || [
+  {key:'', name:'মানিকগঞ্জ', icon:'🏠'}
+];
+let activeBranch = branches[0];
+
+function saveBranches(){ localStorage.setItem('kd_branches', JSON.stringify(branches)); }
+
+function renderBranchTabs(){
+  const bar = document.getElementById('branchTabs');
+  if(!bar) return;
+  bar.innerHTML = branches.map((b,i) => {
+    const active = b.key === activeBranch.key;
+    return '<div style="display:flex;align-items:center;">'+
+      '<button onclick="switchBranch('+i+')" style="background:'+(active?'var(--gold)':'rgba(255,255,255,.1)')+';color:'+(active?'var(--brown-d)':'rgba(255,255,255,.8)')+';border:1.5px solid '+(active?'var(--gold)':'rgba(255,255,255,.2)')+';border-right:none;border-radius:20px 0 0 20px;padding:4px 12px;font-family:Hind Siliguri,sans-serif;font-size:.75rem;font-weight:700;cursor:pointer;white-space:nowrap;">'+(b.icon||'🏪')+' '+b.name+'</button>'+
+      (branches.length>1 ? '<button onclick="removeBranch('+i+')" style="background:rgba(239,68,68,.2);border:1.5px solid rgba(239,68,68,.3);border-left:none;border-radius:0 20px 20px 0;padding:4px 8px;color:#fca5a5;cursor:pointer;font-size:.72rem;">✕</button>' : '<span style="width:0"></span>')+
+      '</div>';
+  }).join('');
+}
+
+function switchBranch(i){
+  activeBranch = branches[i];
+  BRANCH_PREFIX = activeBranch.key ? 'branches/'+activeBranch.key+'/' : '';
+  renderBranchTabs();
+  // পুরনো Firebase listeners বন্ধ করো
+  db.ref(BRANCH_PREFIX || '/').off();
+  settData={name:'কাচ্চি ডাইন',branch:'',hotline:'',address:'',facebook:'',whatsapp:'',logo:'',cover:''};
+  // নতুন শাখার ডেটা লোড করো
+  allMenu=[]; allPkgs=[]; allOrders=[]; allZones=[];
+  listenSettings(); listenOrders(); listenMenu(); listenPkgs(); listenZones();
+  toast('📍 শাখা: '+activeBranch.name);
+}
+
+function addBranchPrompt(){
+  const name = prompt('নতুন শাখার নাম দিন (বাংলায়):\nযেমন: ঢাকা শাখা');
+  if(!name) return;
+  const key = prompt('DB Branch Key দিন (ইংরেজি ছোট হাতে):\nযেমন: dhaka\n\nNote: branch-maker.html এ যে key দিয়েছিলেন সেটাই দিন।');
+  if(key===null) return;
+  const cleanKey = key.trim().replace(/[^a-z0-9_-]/g,'');
+  if(!cleanKey){ toast('❌ Key ঠিকমতো দিন'); return; }
+  if(branches.find(b=>b.key===cleanKey)){ toast('❌ এই key আগেই আছে'); return; }
+  branches.push({key:cleanKey, name:name.trim(), icon:'🏪'});
+  saveBranches(); renderBranchTabs();
+  toast('✅ '+name.trim()+' যোগ হয়েছে!');
+}
+
+function removeBranch(i){
+  if(branches[i].key===activeBranch.key){ toast('❌ সক্রিয় শাখা মুছতে পারবেন না'); return; }
+  if(!confirm(branches[i].name+' সরিয়ে দেবেন?')) return;
+  branches.splice(i,1); saveBranches(); renderBranchTabs();
+}
+
+renderBranchTabs();
+</script>
+</body>
+</html>
